@@ -9,3 +9,12 @@ delegated StackSet privileges.
 
 Secondly, the CDK bootstrap (`bootstrap/`) project be deployed such that any new accounts added
 to the organization will be bootstrapped automatically.
+
+
+## Getting Started
+
+1. Install Nix, direnv and devenv
+2. Enter the project and mark the .envrc safe with `direnv allow`
+3. Assume a privileged role for your management account with `assume <profile>`
+4. Populate `AWS_ORG` (environmental variable) with the organizational structure
+   by reloading direnv: `direnv reload`.
