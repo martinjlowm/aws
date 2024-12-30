@@ -1,0 +1,27 @@
+{
+  "name": "@martinjlowm/aws-constructs",
+  "imports": {
+    "#@/*": [
+      "./src/*",
+      "./src/*.ts"
+    ]
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "^2.173.4",
+    "aws-cdk": "^2.173.4",
+    "cdk-nag": "^2.34.23",
+    "constructs": "^10.4.2",
+    "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.173.4",
+    "aws-cdk": "^2.173.4",
+    "cdk-nag": "^2.34.23",
+    "constructs": "^10.4.2",
+    "typescript": "^5.7.2"
+  }
+}

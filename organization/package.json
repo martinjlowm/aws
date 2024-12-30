@@ -1,0 +1,16 @@
+{
+  "name": "@martinjlowm/aws-organization",
+  "devDependencies": {
+    "@aws-sdk/client-organizations": "^3.716.0",
+    "@martinjlowm/aws-constructs": "workspace:*",
+    "@pepperize/cdk-organizations": "^0.7.971",
+    "@types/node": "^22.10.2",
+    "aws-cdk": "^2.173.4",
+    "aws-cdk-lib": "^2.173.4",
+    "cdk-nag": "^2.34.23",
+    "constructs": "^10.4.2",
+    "lodash.camelcase": "^4.3.0",
+    "typescript": "^5.7.2",
+    "zod": "^3.24.1"
+  }
+}

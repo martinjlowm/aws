@@ -1,0 +1,14 @@
+{
+  "name": "@martinjlowm/aws-bootstrap",
+  "devDependencies": {
+    "@martinjlowm/aws-constructs": "workspace:*",
+    "@martinjlowm/aws-organization": "workspace:*",
+    "@pepperize/cdk-organizations": "^0.7.971",
+    "aws-cdk": "^2.173.4",
+    "aws-cdk-lib": "^2.173.4",
+    "cdk-nag": "^2.34.23",
+    "cdk-stacksets": "^0.0.150",
+    "constructs": "^10.4.2",
+    "typescript": "^5.7.2"
+  }
+}

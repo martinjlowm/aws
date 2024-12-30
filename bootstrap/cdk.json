@@ -1,0 +1,6 @@
+{
+  "app": "bun ./deployment/bin/entry.ts",
+  "context": {
+    "@aws-cdk/core:bootstrapQualifier": "btstrpv1"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "name": "@martinjlowm/aws",
+  "workspaces": ["constructs", "bootstrap", "organization"]
+}
