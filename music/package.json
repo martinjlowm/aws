@@ -1,0 +1,13 @@
+{
+  "name": "@martinjlowm/aws-music",
+  "devDependencies": {
+    "@martinjlowm/aws-constructs": "workspace:*",
+    "@martinjlowm/aws-organization": "workspace:*",
+    "aws-cdk": "^2.173.4",
+    "aws-cdk-lib": "^2.173.4",
+    "cdk-nag": "^2.34.23",
+    "cdk-stacksets": "^0.0.150",
+    "constructs": "^10.4.2",
+    "typescript": "^5.7.2"
+  }
+}

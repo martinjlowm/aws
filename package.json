@@ -1,4 +1,4 @@
 {
   "name": "@martinjlowm/aws",
-  "workspaces": ["constructs", "bootstrap", "organization"]
+  "workspaces": ["constructs", "bootstrap", "organization", "music"]
 }

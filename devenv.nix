@@ -15,6 +15,6 @@
   };
 
   outputs = {
-    music = import ./nix/default.nix { inherit pkgs config; };
+    music = import ./music/nix/default.nix { inherit pkgs config; };
   };
 }
