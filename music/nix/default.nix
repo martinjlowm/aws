@@ -16,6 +16,33 @@ let
     { key = "beatport_tracks_2024-10-2.zip"; outputHash = "sha256-01rlwZGxsq5RnOjol7Dh45LnUPTN4PuJJXIl8PMHeWw="; }
     { key = "beatport_tracks_2024-10.zip"; outputHash = "sha256-ic+Egn0ecBJwBZiKbmg52u4vyDB3u1EZdG5rvGIhHeY="; }
   ];
+  # writeJSON (file name -> bpm limit)
+  formatKey = pkgs.writers.writeJS "format-key" {} ''
+    const [num, letter] = process.argv[2].split(/(?=[0-9]*)/g);
+    process.stdout.write(`''${num.padStart(2, '0')}''${letter}`);
+  '';
+  prependBPMKey = pkgs.writers.writeBash "prepend-bpm-key" ''
+    file_path=$1
+    file_name=$(basename $file_path)
+
+    chmod +r "$file_path"
+
+    BPM_LIMIT=180
+
+    BPM=$(${pkgs.ffmpeg}/bin/ffmpeg -vn -i "$file_path" -ar 44100 -ac 1 -f f32le pipe:1 2>/dev/null | ${pkgs.bpm-tools}/bin/bpm -x $BPM_LIMIT -f "%03.0f")
+    KEY=$(${formatKey} "$(${pkgs.keyfinder-cli}/bin/keyfinder-cli -n camelot "$file_path")")
+
+    cp "$file_path" "$out/''${BPM}_''${KEY}_''${file_name}"
+  '';
+  emitFormats = pkgs.writers.writeBash "emit-formats" ''
+    file_path=$1
+    file_name=$(basename $file_path)
+    file_name_without_extension=$(basename $file_path .wav)
+
+    echo $1
+    ${pkgs.flac}/bin/flac -o $flac/''${file_name_without_extension}.flac $file_path;
+    ln -s $file_path $out/$file_name;
+  '';
   drvs = map (bundle: pkgs.stdenv.mkDerivation {
     name = "bundle";
     src = pkgs.fetchs3 {
@@ -42,17 +69,7 @@ let
 
       ${pkgs.unzip}/bin/unzip $src
 
-      BPM_LIMIT=180
-      for file in $(dir); do
-        (
-          chmod +r "$file"
-          BPM=$(${pkgs.ffmpeg}/bin/ffmpeg -vn -i "$file" -ar 44100 -ac 1 -f f32le pipe:1 2>/dev/null | ${pkgs.bpm-tools}/bin/bpm -x $BPM_LIMIT -f "%03.0f")
-          KEY=$(${pkgs.keyfinder-cli}/bin/keyfinder-cli -n camelot $file);
-          mv "$file" "$out/''${BPM}_''${KEY}_''${file}"
-        ) &
-      done
-
-      wait
+      ls | ${pkgs.parallel}/bin/parallel -j8 "${prependBPMKey} $PWD/{}"
     '';
   }) bundles;
 in pkgs.stdenv.mkDerivation {
@@ -69,13 +86,6 @@ in pkgs.stdenv.mkDerivation {
   buildPhase = ''
     mkdir -p $out $flac
 
-    for file in $src/*; do
-        (
-          ${pkgs.flac}/bin/flac -o $flac/$(basename $file .wav).flac $file
-          ln -s $file $out/$file
-        ) &
-    done
-
-    wait
+    ls $src | ${pkgs.parallel}/bin/parallel -j8 "${emitFormats} $src/{}"
   '';
 }
