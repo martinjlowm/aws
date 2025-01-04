@@ -10,6 +10,12 @@ delegated StackSet privileges.
 Secondly, the CDK bootstrap (`bootstrap/`) project be deployed such that any new accounts added
 to the organization will be bootstrapped automatically.
 
+## Projects
+
+- `music/` includes a Nix derivation to analyze the beats per minute, BPM, and
+  key (Camelot format) of Beatport-downloaded bundles which are then prepended
+  to the file name. The derivation exposes two outputs: raw wav- and FLAC-files
+  both which can then be copied straight onto a USB.
 
 ## Getting Started
 
