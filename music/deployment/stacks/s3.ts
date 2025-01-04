@@ -1,5 +1,5 @@
-import { Stack, type StackProps } from 'aws-cdk-lib';
-import { Bucket, type IBucket, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
+import { Stack, Duration, type StackProps } from 'aws-cdk-lib';
+import { Bucket, type IBucket, StorageClass } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export class S3 extends Stack {
@@ -10,6 +10,18 @@ export class S3 extends Stack {
 
     this.bucket = new Bucket(this, 'bucket', {
       bucketName: `${this.account}-${this.region}-music`,
+      lifecycleRules: [
+        {
+          id: 'lifecycle-ia-rule',
+          enabled: true,
+          transitions: [
+            {
+              storageClass: StorageClass.INFREQUENT_ACCESS,
+              transitionAfter: Duration.days(7),
+            }
+          ]
+        },
+      ],
     });
   }
 }
