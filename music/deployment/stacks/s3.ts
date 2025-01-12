@@ -17,7 +17,7 @@ export class S3 extends Stack {
           transitions: [
             {
               storageClass: StorageClass.INFREQUENT_ACCESS,
-              transitionAfter: Duration.days(7),
+              transitionAfter: Duration.days(30),
             }
           ]
         },
