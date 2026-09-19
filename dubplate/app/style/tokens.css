@@ -1,0 +1,258 @@
+/* MJLM colour system — sampled from the Amager Strand sunset reference.
+   Three chromatic families map to the three bands of that photograph:
+   Ember = the sun and horizon, Rose = the cloud underside, Dusk = the sea and upper sky.
+   Ink is the twilight neutral; Sand is the warm paper neutral.
+
+   Rose is the primary accent. It is the muted red of the cloud bank directly above the
+   sun — the largest chromatic area in the reference and the colour that carries the
+   photograph's mood. Ember stays in the system as the warm highlight and as the
+   warning status, but it is loud enough that leading with it flattened everything else. */
+
+:root {
+  /* Ink — twilight neutral, violet-biased. Sampled from the foreground dune and sea. */
+  --ink-950: #0e0a13;
+  --ink-900: #150f1c;
+  --ink-800: #1c1525;
+  --ink-700: #261c35;
+  --ink-600: #322747;
+  --ink-500: #3d3556;
+  --ink-400: #565073;
+  --ink-300: #7d768f;
+  --ink-200: #a9a2b6;
+  --ink-100: #cdc7d5;
+  --ink-050: #e8e4ee;
+
+  /* Sand — warm paper neutral. Sampled from the high cloud and beach. */
+  --sand-050: #fbf8f2;
+  --sand-100: #f4eee2;
+  --sand-200: #e4d6b7;
+  --sand-300: #d8cab7;
+  --sand-400: #c0b09a;
+
+  /* Ember — the sun on the horizon. The primary accent. */
+  --ember-300: #f2c9a5;
+  --ember-400: #e9b287;
+  --ember-500: #e7aa7b;
+  --ember-600: #d78d5c;
+  --ember-700: #b56f45;
+
+  /* Rose — the lit underside of the cloud bank. */
+  --rose-300: #dfa8ba;
+  --rose-400: #c98da3;
+  --rose-500: #ac6c84;
+  --rose-600: #8d5069;
+  --rose-700: #6b3a50;
+
+  /* Dusk — the sea and the cold top of the sky. */
+  --dusk-100: #d6d5e5;
+  --dusk-200: #c3c5de;
+  --dusk-300: #9a9dc4;
+  --dusk-400: #6f74a3;
+  --dusk-500: #4a4f7a;
+  --dusk-600: #353856;
+  --dusk-700: #282947;
+
+  /* Status — held inside the same muted, low-chroma range as the families above. */
+  --status-success: #5f8a6b;
+  --status-success-soft: #e2ecdf;
+  --status-warning: var(--ember-700);
+  --status-warning-soft: #f7e6d4;
+  --status-danger: #b0524b;
+  --status-danger-soft: #f4dcd8;
+  --status-info: var(--dusk-400);
+  --status-info-soft: #e3e4f0;
+
+  /* ---- Semantic aliases: light (default) ---- */
+  --surface-page: var(--sand-050);
+  --surface-card: #ffffff;
+  --surface-sunken: var(--sand-100);
+  --surface-raised: #ffffff;
+  --surface-inverse: var(--ink-800);
+  --surface-accent-soft: #f7e6ec;
+
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-400);
+  --text-muted: var(--ink-300);
+  --text-inverse: var(--sand-050);
+  --text-accent: var(--rose-600);
+  --text-link: var(--dusk-500);
+  --text-link-hover: var(--ink-900);
+
+  --border-subtle: #e9e1d4;
+  --border-default: var(--sand-300);
+  --border-strong: var(--sand-400);
+  --border-inverse: var(--ink-600);
+
+  --accent-primary: var(--rose-600);
+  --accent-primary-hover: var(--rose-700);
+  --accent-primary-text: var(--sand-050);
+  --accent-secondary: var(--dusk-500);
+  --accent-tertiary: var(--ember-600);
+
+  --focus-ring: var(--dusk-400);
+  --overlay-scrim: rgba(21, 15, 28, 0.62);
+}
+
+/* ---- Semantic aliases: dark. The reference photograph is a night image, so dark is
+   the native mode of this identity rather than an afterthought. ---- */
+[data-theme="dark"] {
+  --surface-page: var(--ink-900);
+  --surface-card: var(--ink-800);
+  --surface-sunken: var(--ink-950);
+  --surface-raised: var(--ink-700);
+  --surface-inverse: var(--sand-050);
+  --surface-accent-soft: #33202b;
+
+  --text-primary: var(--sand-050);
+  --text-secondary: var(--ink-200);
+  --text-muted: var(--ink-300);
+  --text-inverse: var(--ink-900);
+  --text-accent: var(--rose-300);
+  --text-link: var(--dusk-200);
+  --text-link-hover: var(--rose-300);
+
+  --border-subtle: #241a2e;
+  --border-default: var(--ink-600);
+  --border-strong: var(--ink-500);
+  --border-inverse: var(--sand-300);
+
+  --accent-primary: var(--rose-400);
+  --accent-primary-hover: var(--rose-300);
+  --accent-primary-text: var(--ink-900);
+  --accent-secondary: var(--dusk-300);
+  --accent-tertiary: var(--ember-500);
+
+  --status-success-soft: #1e2b22;
+  --status-warning-soft: #33231a;
+  --status-danger-soft: #331d1c;
+  --status-info-soft: #1f2136;
+
+  --focus-ring: var(--dusk-300);
+  --overlay-scrim: rgba(14, 10, 19, 0.78);
+}
+
+/* Space Grotesk carries the display voice — its flat terminals and angular joins echo
+   the mitred corners of the monogram. IBM Plex Sans handles running text. JetBrains Mono
+   is used for labels, metadata and code, and is the type the identity leans on hardest. */
+
+:root {
+  --font-display: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Display scale — Space Grotesk, tight tracking, tight leading. */
+  --text-display-xl: 72px;
+  --text-display-lg: 56px;
+  --text-display-md: 40px;
+  --text-display-sm: 30px;
+  --leading-display: 1.04;
+  --tracking-display: -0.025em;
+
+  /* Body scale — IBM Plex Sans. */
+  --text-body-xl: 20px;
+  --text-body-lg: 17px;
+  --text-body-md: 15px;
+  --text-body-sm: 13px;
+  --leading-body: 1.55;
+  --leading-body-tight: 1.4;
+  --tracking-body: 0em;
+
+  /* Mono / label scale. Labels are uppercase with open tracking. */
+  --text-mono-md: 13px;
+  --text-mono-sm: 11px;
+  --text-mono-xs: 10px;
+  --tracking-label: 0.14em;
+  --tracking-label-wide: 0.16em;
+}
+
+/* 4px base grid. The monogram resolves onto a four-line grid per axis, and the layout
+   scale keeps the same discipline: no half steps, no arbitrary values. */
+
+:root {
+  --space-0: 0px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --space-9: 40px;
+  --space-10: 48px;
+  --space-11: 64px;
+  --space-12: 80px;
+  --space-13: 96px;
+  --space-14: 128px;
+
+  /* Radii stay near zero — the mark has no curves and no round joins. Pills are
+     reserved for tags and counters, where the shape carries meaning. */
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-pill: 999px;
+
+  --border-width: 1px;
+  --border-width-thick: 2px;
+
+  --container-sm: 640px;
+  --container-md: 880px;
+  --container-lg: 1120px;
+  --container-xl: 1560px;
+}
+
+/* Shadows are warm-tinted and shallow. The identity prefers a hairline border to a
+   float; elevation is reserved for things that genuinely sit above the page
+   (dialogs, menus, toasts). */
+
+:root {
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px rgba(28, 21, 37, 0.06);
+  --shadow-sm: 0 1px 3px rgba(28, 21, 37, 0.08), 0 1px 2px rgba(28, 21, 37, 0.04);
+  --shadow-md: 0 4px 12px rgba(28, 21, 37, 0.1), 0 1px 3px rgba(28, 21, 37, 0.06);
+  --shadow-lg: 0 12px 32px rgba(28, 21, 37, 0.14), 0 2px 6px rgba(28, 21, 37, 0.06);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --ring-focus: 0 0 0 3px rgba(111, 116, 163, 0.35);
+}
+
+[data-theme="dark"] {
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --ring-focus: 0 0 0 3px rgba(154, 157, 196, 0.4);
+}
+
+/* One easing curve throughout, taken from the monogram's rotation build-in: a fast
+   start that settles rather than bounces. Nothing in this system overshoots. */
+
+:root {
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-linear: linear;
+
+  --duration-instant: 90ms;
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+  --duration-slow: 400ms;
+  --duration-settle: 1100ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 1ms;
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+    --duration-settle: 1ms;
+  }
+}

@@ -1,0 +1,234 @@
+@import "./fonts.css";
+@import "./tokens.css";
+@import "./shadcn.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    background: var(--surface-page);
+  }
+
+  body {
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--ember-300);
+    color: var(--ink-900);
+  }
+
+  /* The display voice, everywhere a heading is a heading. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-display);
+    font-weight: var(--weight-semibold);
+  }
+}
+
+@layer components {
+  /* Uppercase mono at open tracking is the identity's label, and it appears
+   * often enough here to be one class rather than five utilities. */
+  .label {
+    font-family: var(--font-mono);
+    font-size: var(--text-mono-xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Every number a person reads off this page: tempo, key, seconds, salience.
+   * Tabular figures so a column of them lines up. */
+  .figure {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A card's eyebrow and its title, as one heading. The eyebrow is not a
+   * heading of its own: the page is four sections, not eight, and a reader
+   * listing them should hear what each one does rather than counting to three.
+   * The base rule above gives the h2 its face, tracking and leading; the eyebrow
+   * opts back out of the weight and the leading, because a 10px mono line set
+   * semibold at 1.04 is not the label the rest of the page uses. */
+  .section-heading {
+    display: block;
+    margin: 0;
+  }
+
+  .section-heading .label {
+    font-weight: var(--weight-regular);
+    line-height: var(--leading-body);
+  }
+
+  .section-title {
+    margin-top: var(--space-4);
+    font-size: var(--text-display-sm);
+  }
+
+  /* A row that opens. The marker is the same + that Settings rotates, so the
+   * page has one disclosure and not two, and inside a table of measurements it
+   * is the only thing that answers to a pointer. Rows still being measured keep
+   * the marker's width and lose its ink, so every track name starts on the same
+   * column whether or not there is anything to open yet. */
+  .disclosure {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .disclosure:disabled {
+    cursor: default;
+  }
+
+  .disclosure-marker {
+    flex: none;
+    width: 1ch;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    transition:
+      transform var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
+  }
+
+  .disclosure:disabled .disclosure-marker {
+    opacity: 0;
+  }
+
+  .disclosure-name {
+    color: var(--text-primary);
+    transition: color var(--duration-fast) var(--ease-standard);
+  }
+
+  .disclosure:hover:not(:disabled) .disclosure-marker,
+  .disclosure:hover:not(:disabled) .disclosure-name,
+  .disclosure:focus-visible .disclosure-marker,
+  .disclosure:focus-visible .disclosure-name {
+    color: var(--accent-primary);
+  }
+
+  .disclosure[aria-expanded="true"] .disclosure-marker {
+    transform: rotate(45deg);
+    color: var(--accent-primary);
+  }
+
+  /* A hairline box, which is what this identity reaches for before a shadow. */
+  .panel {
+    background: var(--surface-card);
+    border: var(--border-width) solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+  }
+}
+
+/* Animation.
+ *
+ * Everything below moves transform and opacity only, so it runs on the
+ * compositor. That matters here more than it usually does: the analysis is a
+ * long synchronous run, and although it happens in a worker, the moment the main
+ * thread does have work to do these keep going rather than stuttering.
+ *
+ * Durations and the easing curve come from the design system. Nothing
+ * overshoots, and prefers-reduced-motion collapses every duration to 1ms through
+ * the same tokens. */
+
+@keyframes settle {
+  0% {
+    transform: rotate(-90deg) scale(0.86);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* The needle that sweeps a track's row while it is being measured. A tempo
+ * search is a sweep across the BPM range, and this is that, slowed to something
+ * a person can watch. */
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+/* A pulse on the beat, at the tempo just measured. The duration is set inline
+ * from the answer, so a 174 BPM track pulses at 174 and a 126 one does not. */
+@keyframes beat {
+  0% {
+    transform: scaleY(0.25);
+    opacity: 0.45;
+  }
+  12% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.25);
+    opacity: 0.45;
+  }
+}
+
+/* The Camelot wheel's segments arriving one at a time as keys are measured. */
+@keyframes bloom {
+  from {
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-settle {
+  animation: settle var(--duration-settle) var(--ease-standard) both;
+}
+
+.animate-rise {
+  animation: rise var(--duration-base) var(--ease-standard) both;
+}
+
+.animate-sweep {
+  animation: sweep 1.4s var(--ease-linear) infinite;
+}
+
+.animate-beat {
+  animation: beat var(--beat-period, 480ms) var(--ease-standard) infinite;
+  transform-origin: bottom;
+}
+
+.animate-bloom {
+  animation: bloom var(--duration-base) var(--ease-standard) both;
+}

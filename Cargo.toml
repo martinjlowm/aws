@@ -1,0 +1,65 @@
+# The Rust half of this repository, as one workspace.
+#
+# A workspace with a single member today, for the same reason `package.json` at
+# this level lists five: a build artefact directory and a lock file belong to the
+# repository rather than to whichever crate happened to arrive first. The next
+# Rust crate is a line in `members` and nothing else.
+[workspace]
+# resolver 3 is MSRV-aware: with rust-version set below, cargo picks dependency
+# versions the pinned toolchain can still compile.
+resolver = "3"
+members = ["dubplate/app"]
+
+# The analysis: dubplate's own crates, pinned to a commit.
+#
+# A rev rather than a branch, so what the interface was built against is a fact
+# rather than a date. Cargo.lock records it either way; pinning here means
+# reading one file instead of two to find out which.
+#
+# Working on both at once is the other form, and it is a one-line swap:
+#
+#   dubplate-wasm = { path = "../music-analyze/tools/rust/dubplate-wasm" }
+[workspace.dependencies]
+dubplate-wasm = { git = "https://github.com/martinjlowm/dubplate", rev = "fc7e0b4dbf701ad955ceab97f7565fed0618642a" }
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "UNLICENSED"
+# The oldest compiler that builds this. Leptos 0.8 and the shadcn components need
+# a recent one; this is what devenv's stable channel provides.
+rust-version = "1.85"
+
+# Profiles are read from the workspace root and ignored anywhere else, which is
+# why this is here rather than beside the crate it describes.
+[profile.release]
+# The analysis is not in this binary, but the interface still ships as wasm and
+# every kilobyte is on the critical path of a cold visit.
+opt-level = "z"
+lto = true
+codegen-units = 1
+# No `panic` key, because on wasm32-unknown-unknown there is nothing to choose:
+# the target has no unwinder, so `unwind` lowers a panic to the same trap
+# `abort` would, and the console reads `RuntimeError: unreachable` either way.
+# What gives a panic its name is console_error_panic_hook, which runs before the
+# trap and prints the message with its file and line.
+#
+# The part that follows from having no unwinder: destructors do not run on the
+# way out. Anything a panic could be holding is still held afterwards, which is
+# why the worker takes its state out of the RefCell rather than borrowing across
+# the analysis. See the comment in dubplate/app/src/bin/analysis.rs.
+
+# Every dependency at full speed, this crate at minimum size.
+#
+# The two binaries want opposite things and cargo has no per-binary profile, but
+# it does have a per-package one, and the split falls where the packages do: the
+# interface is this crate's own code plus leptos, the measurement is dubplate's
+# crates plus rustfft and symphonia, and Trunk emits them as separate modules so
+# neither pays for the other's setting.
+#
+# Measured on a six-track archive, in a release build, three runs: 5.0 seconds
+# with everything at `z`, 0.5 seconds with this. `opt-level = "z"` is brutal on
+# numeric code, and a tenth of the time is worth the megabyte the analysis module
+# grows, because that module is downloaded once and then measures every track.
+[profile.release.package."*"]
+opt-level = 3

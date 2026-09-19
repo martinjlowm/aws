@@ -1,0 +1,22 @@
+[build]
+target = "index.html"
+dist = "dist"
+# Every asset carries a content hash, which is what lets the bucket serve them
+# with a year's cache. index.html is the one file that must not be, and the
+# deployment stack says so on its side.
+filehash = true
+
+[watch]
+watch = ["src", "style", "index.html", "public"]
+
+[serve]
+port = 8080
+open = false
+
+[[hooks]]
+stage = "pre_build"
+command = "sh"
+command_arguments = [
+  "-c",
+  "tailwindcss -i style/main.css -o style/generated.css --minify",
+]

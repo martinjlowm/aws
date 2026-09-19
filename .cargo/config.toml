@@ -1,0 +1,17 @@
+# Vector instructions for the browser build.
+#
+# `simd128` is off by default for wasm32-unknown-unknown, so a module built
+# without this runs scalar code on an engine that has had SIMD for years. It is
+# what makes rustfft's `wasm_simd` butterflies compile and what lets LLVM
+# vectorise the band reductions and the Goertzel bank that measure a track.
+#
+# dubplate sets the same flag in its own `.cargo/config.toml`, and that file does
+# nothing here: cargo reads config from the directory the build is invoked in and
+# never from a dependency. `spectral` asks for rustfft's `wasm_simd` feature on
+# this target and says in its own manifest that the feature is inert without this
+# flag, so leaving it out is how a build quietly gets the slow module.
+#
+# Every other target is untouched. The CLI picks AVX or NEON at runtime through
+# rustfft's own dispatch, which needs no flag.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]

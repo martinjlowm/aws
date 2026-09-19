@@ -1,0 +1,79 @@
+/* The shadcn contract, filled in from the design system next door.
+ *
+ * shadcn components are written against a fixed set of role variables
+ * (--background, --primary, --border, and so on) as bare HSL triples, because
+ * Tailwind composes them with an opacity: `bg-primary/50` becomes
+ * `hsl(var(--primary) / 0.5)`. Nothing here invents a colour. Every triple is
+ * one of the hexes in tokens.css converted, and the comment beside it says which,
+ * so a change to the palette has exactly one place to land.
+ *
+ * The mapping is where the two systems meet, and it is opinionated in one
+ * respect: shadcn's `--radius` is a pill by default and this identity has no
+ * curves, so it is 2px. Buttons that look like buttons elsewhere look like this
+ * identity's buttons here.
+ *
+ * Light only. The kit carries a dark half and tokens.css still defines it, but
+ * nothing here sets `data-theme`, so this file maps the one set of values the
+ * page actually renders with. */
+
+:root {
+  --background: 40 52.9% 96.7%; /* sand-050 */
+  --foreground: 267.7 30.2% 8.4%; /* ink-900 */
+
+  --card: 0 0% 100%; /* white, as surface-card */
+  --card-foreground: 267.7 30.2% 8.4%; /* ink-900 */
+  --popover: 0 0% 100%;
+  --popover-foreground: 267.7 30.2% 8.4%;
+
+  --primary: 335.4 27.6% 43.3%; /* rose-600, the accent this identity leads with */
+  --primary-foreground: 40 52.9% 96.7%; /* sand-050 */
+
+  --secondary: 40 45% 92.2%; /* sand-100, as surface-sunken */
+  --secondary-foreground: 267.7 30.2% 8.4%;
+
+  --muted: 40 45% 92.2%; /* sand-100 */
+  --muted-foreground: 256.8 10% 51.2%; /* ink-300, as text-muted */
+
+  --accent: 338.8 51.5% 93.5%; /* surface-accent-soft */
+  --accent-foreground: 333.1 29.7% 32.4%; /* rose-700 */
+
+  --destructive: 4.2 40.2% 49.2%; /* status-danger */
+  --destructive-foreground: 40 52.9% 96.7%;
+
+  --border: 34.5 29.7% 78.2%; /* sand-300, as border-default */
+  --input: 34.5 29.7% 78.2%;
+  --ring: 234.2 22% 53.7%; /* dusk-400, as focus-ring */
+
+  /* radius-xs. The mark has no curves and no round joins, and neither does
+   * anything drawn beside it. */
+  --radius: 2px;
+}
+
+[data-theme="dark"] {
+  --background: 267.7 30.2% 8.4%; /* ink-900 */
+  --foreground: 40 52.9% 96.7%; /* sand-050 */
+
+  --card: 266.3 27.6% 11.4%; /* ink-800 */
+  --card-foreground: 40 52.9% 96.7%;
+  --popover: 266.3 27.6% 11.4%;
+  --popover-foreground: 40 52.9% 96.7%;
+
+  --primary: 338 35.7% 67.1%; /* rose-400 */
+  --primary-foreground: 267.7 30.2% 8.4%; /* ink-900 */
+
+  --secondary: 264 30.9% 15.9%; /* ink-700, as surface-raised */
+  --secondary-foreground: 40 52.9% 96.7%;
+
+  --muted: 264 30.9% 15.9%;
+  --muted-foreground: 256.8 10% 51.2%; /* ink-300 */
+
+  --accent: 325.3 22.9% 16.3%; /* surface-accent-soft, dark */
+  --accent-foreground: 340.4 46.2% 76.7%; /* rose-300 */
+
+  --destructive: 4.2 40.2% 49.2%;
+  --destructive-foreground: 40 52.9% 96.7%;
+
+  --border: 260.6 29.1% 21.6%; /* ink-600 */
+  --input: 260.6 29.1% 21.6%;
+  --ring: 235.7 26.3% 68.6%; /* dusk-300 */
+}

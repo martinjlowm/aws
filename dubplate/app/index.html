@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dubplate</title>
+    <meta
+      name="description"
+      content="Tempo and key analysis you can argue with, cut to a USB stick a player will read. In a browser: nothing is uploaded."
+    />
+    <link data-trunk rel="rust" data-bin="dubplate-web" data-type="main" data-wasm-opt="z" />
+    <!-- The analysis, as a worker. Trunk names the wrapper after the binary
+         rather than hashing it, which is what lets the page reach it at a fixed
+         path. `web` rather than the default `no-modules` because a module worker
+         is what the loader shim expects. -->
+    <link
+      data-trunk
+      rel="rust"
+      data-bin="analysis"
+      data-type="worker"
+      data-bindgen-target="web"
+      data-loader-shim
+      data-wasm-opt="z"
+    />
+    <link data-trunk rel="css" href="style/generated.css" />
+    <link data-trunk rel="copy-file" href="public/favicon.svg" />
+    <link data-trunk rel="copy-dir" href="public/fonts" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>

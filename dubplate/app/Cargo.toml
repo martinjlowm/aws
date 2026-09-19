@@ -1,0 +1,91 @@
+[package]
+name = "dubplate-web"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+# The analysis: dubplate's own crates, linked rather than built separately and
+# loaded at runtime. Its `#[wasm_bindgen]` exports land in whichever binary here
+# depends on it, which is the worker.
+dubplate-wasm.workspace = true
+
+# Not called from this crate. It is here to turn on two features in a dependency
+# of a dependency, which is what lets the page read an MP4.
+#
+# `audio` takes symphonia with `mp3` and `aiff`, and its `from_encoded_bytes`
+# probes the bytes through `symphonia::default::get_probe()`, which offers every
+# format symphonia was compiled with. Cargo unifies features across the graph, so
+# naming them here adds the MP4 reader and the AAC decoder to the probe without a
+# patch to dubplate's crates, and the same call decodes the same file.
+#
+# `isomp4` reads the container and picks its audio track, so a video file works
+# and its picture is never decoded. `aac` is the codec inside almost every one;
+# `alac` is the other, and costs little. Opus is the gap: symphonia decodes it
+# only through a C libopus adapter, which does not build for this target, so a
+# WebM whose audio is Opus is read as far as the codec and refused there.
+symphonia = { version = "0.6", features = ["isomp4", "aac", "alac"] }
+
+# `default-features = false`, because the default set is the server's. This is a
+# browser build and nothing here renders anywhere else.
+leptos = { version = "0.8", default-features = false, features = ["csr"] }
+# The components, without the default set: `default` drags in
+# `leptos-shadcn-performance-audit`, whose dependency on `num 0.1` pulls
+# `rustc-serialize`, which no current compiler will build.
+#
+# Exactly the components this application renders, and no more. That is not
+# tidiness: `leptos-shadcn-select` turns on `leptos/ssr`, and cargo unifies
+# features across the graph, so one unused component sets `tachys/ssr` for the
+# whole build. tachys then skips creating every event handler, on the reasoning
+# that a server has no DOM to attach them to, and the page panics on the first
+# one it reaches. Adding a component here means checking what its own manifest
+# turns on.
+leptos-shadcn-ui = { version = "0.9", default-features = false, features = [
+  "badge",
+  "button",
+  "card",
+  "input",
+  "label",
+  "progress",
+  "separator",
+  "switch",
+  "tabs",
+] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde-wasm-bindgen = "0.6"
+# Exact, and matched to the wasm-bindgen-cli devenv provides. The crate writes a
+# schema into the wasm module and the CLI reads it; a mismatch makes Trunk go and
+# download the version it wants instead of using the one on PATH.
+wasm-bindgen = "=0.2.121"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+console_error_panic_hook = "0.1"
+gloo-timers = { version = "0.3", features = ["futures"] }
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "Blob",
+  "BlobPropertyBag",
+  "DataTransfer",
+  "DedicatedWorkerGlobalScope",
+  "DragEvent",
+  "Element",
+  "File",
+  "FileList",
+  "HtmlAnchorElement",
+  "HtmlElement",
+  "HtmlInputElement",
+  "MessageEvent",
+  "Navigator",
+  "Storage",
+  "Url",
+  "Window",
+  "Worker",
+  "WorkerOptions",
+  "WorkerType",
+]
