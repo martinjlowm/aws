@@ -18,8 +18,8 @@ export class S3 extends Stack {
             {
               storageClass: StorageClass.INFREQUENT_ACCESS,
               transitionAfter: Duration.days(30),
-            }
-          ]
+            },
+          ],
         },
       ],
     });

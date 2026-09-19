@@ -1,21 +1,46 @@
-# Devenv
-.devenv*
+# Nix / devenv / direnv
+.devenv/
+.direnv/
+.devenv.flake.nix
 devenv.local.nix
-
-# direnv
-.direnv
-
-# pre-commit
+# devenv git-hooks writes this as a symlink into the Nix store
 .pre-commit-config.yaml
-# Devenv
-.devenv*
-devenv.local.nix
+result
+result-*
 
-# direnv
-.direnv
+# Node
+node_modules/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
 
-# pre-commit
-.pre-commit-config.yaml
+# Written on shell entry from biome-config.nix (devenv.nix enterShell). It has
+# to be a real file at the root for `yarn lint` and editor LSPs to find it,
+# and it must not be a second copy anyone can edit.
+biome.json
 
-cdk.out
-node_modules
+# CDK
+cdk.out/
+
+# OS
+.DS_Store
+
+# dubplate/app build output. The stylesheet is generated from style/main.css by
+# Tailwind on every build.
+dubplate/app/dist/
+dubplate/app/style/generated.css
+
+# cargo's build directory. At the root, because the Rust crates are one workspace
+# declared in Cargo.toml beside package.json. Matched anywhere rather than only
+# there, so a stale one left by a crate that used to build on its own stays out
+# too.
+**/target/
+
+# Images the application writes. `music.img` is what a run produces, not a
+# fixture: a FAT32 volume holding whatever bundle was dropped on the page, and
+# the one in this tree is 1.2 GB.
+dubplate/app/*.img
