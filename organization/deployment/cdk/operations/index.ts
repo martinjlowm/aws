@@ -1,5 +1,5 @@
 import { OrganizationalUnit, type OrganizationalUnitProps } from '@pepperize/cdk-organizations';
-import { Role, ManagedPolicy, AccountPrincipal } from 'aws-cdk-lib/aws-iam';
+import { AccountPrincipal, ManagedPolicy, Role } from 'aws-cdk-lib/aws-iam';
 import type { Construct } from 'constructs';
 
 import Account from '../account';
@@ -14,7 +14,7 @@ export default class extends OrganizationalUnit {
     const cdkBootstrap = new Account(scope, 'CDKBootstrap', {
       accountName: 'cdk-bootstrap',
       parent: this,
-     });
+    });
 
     new Role(scope, 'StackSetExecutionRole', {
       roleName: 'AWSCloudFormationStackSetExecutionRole',

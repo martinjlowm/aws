@@ -1,5 +1,9 @@
 {
   "name": "@martinjlowm/aws-organization",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
   "devDependencies": {
     "@aws-sdk/client-organizations": "^3.716.0",
     "@martinjlowm/aws-constructs": "workspace:*",

@@ -1,6 +1,9 @@
 import z from 'zod';
 
-export function parse<S extends z.ZodType<any, any, any>>(content: string, schema: S): z.infer<S> {
+export function parse<S extends z.ZodType<any, any, any>>(
+  content: string | undefined,
+  schema: S,
+): z.infer<S> {
   return z
     .string()
     .transform((c, ctx) => {
@@ -20,7 +23,7 @@ export function parse<S extends z.ZodType<any, any, any>>(content: string, schem
 }
 
 export function safeParse<S extends z.ZodType<any, any, any>>(
-  content: string,
+  content: string | undefined,
   schema: S,
 ): z.SafeParseReturnType<string, z.infer<S>> {
   return z
@@ -45,13 +48,16 @@ export const organizationIdentifiersSchema = z.object({
   root: z.string(),
   organization: z.string(),
   organizationalUnits: z.object({
+    management: z.string(),
     operations: z.string(),
     applications: z.string(),
   }),
   accounts: z.object({
     management: z.string(),
     cdkBootstrap: z.string(),
+    domains: z.string(),
     musicStorage: z.string(),
+    dubplateWeb: z.string(),
   }),
 });
 

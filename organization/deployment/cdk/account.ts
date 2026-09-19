@@ -6,7 +6,10 @@ export default class extends Account {
   constructor(scope: Construct, id: string, props: Omit<AccountProps, 'email'>) {
     assert(props.parent, 'Must provide account parent');
 
-    const pathParts = props.parent.node.path.split('/').slice(1).map((p) => p.substring(0, 3).toLowerCase());
+    const pathParts = props.parent.node.path
+      .split('/')
+      .slice(1)
+      .map((p) => p.substring(0, 3).toLowerCase());
 
     super(scope, id, {
       ...props,
