@@ -645,34 +645,98 @@ impl Sniff {
 ///
 /// The name a file arrives under is a claim and its bytes are the fact, and the
 /// two disagree often enough to matter: a shop ships a FLAC inside a zip under
-/// an `.mp3` name, a download arrives with no extension at all. Both databases
-/// pick a track's format out of its name and neither looks at the file, so the
-/// claim is what decides whether a player finds the track. This is where it is
-/// made to match.
+/// an `.mp3` name, a download arrives with no extension at all. Both exporters
+/// read a track's format out of its name and neither opens the file, so the
+/// claim is what decides whether a player finds the track.
 ///
-/// Nothing is transcoded here and nothing needs to be. Every rename is one where
-/// the bytes already are what the new name says, so what lands on the stick is a
-/// valid file of the format it now claims to be.
-///
-/// A format the device cannot write is left under whatever name it came with.
-/// Renaming it would not make it writable, and `standing` holds it off the image
-/// and says so.
+/// The name also has to be one a FAT32 directory will take, which is a shorter
+/// list than it sounds. Making it writable here rather than letting the
+/// filesystem refuse it means the refusal does not arrive at the end of a build,
+/// after every track has been measured and waited for.
 async fn name_on_the_image(name: &str, file: &File) -> String {
     let sniffed = sniff(file).await;
-    let Some(preferred) = sniffed.preferred() else {
-        return name.to_string();
+    let named = match sniffed.preferred() {
+        None => name.to_string(),
+        Some(preferred) => {
+            let (stem, extension) = split_name(name);
+            if extension.is_some_and(|extension| {
+                sniffed
+                    .acceptable()
+                    .iter()
+                    .any(|known| extension.eq_ignore_ascii_case(known))
+            }) {
+                name.to_string()
+            } else {
+                format!("{stem}.{preferred}")
+            }
+        }
     };
+    fat_safe(&named)
+}
 
-    let (stem, extension) = split_name(name);
-    if extension.is_some_and(|extension| {
-        sniffed
-            .acceptable()
-            .iter()
-            .any(|known| extension.eq_ignore_ascii_case(known))
-    }) {
-        return name.to_string();
+/// A name a FAT32 directory will accept.
+///
+/// The filesystem's long names allow letters, digits, everything from U+0080 to
+/// U+FFFF, and a short list of punctuation. A colon is not on it, so a track
+/// called `Seein Ya (from Insecure: Music From The HBO Original Series)` cannot
+/// be written under its own name, and neither can one carrying `?`, `*`, `"`,
+/// `<`, `>`, `|` or a character from beyond the basic plane, which is where the
+/// emoji are.
+///
+/// Every one of those becomes a hyphen. The alternative is dropping them, and a
+/// hyphen keeps the gap visible: a person looking for `Insecure: Music` finds
+/// `Insecure- Music` and knows what happened to it.
+fn fat_safe(name: &str) -> String {
+    let safe: String = name
+        .chars()
+        .map(|character| {
+            if fat_allows(character) {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect();
+
+    // The analyser puts a tempo, a key and two underscores in front of this
+    // before the filesystem sees it, so the budget here is short of the limit by
+    // enough to carry them.
+    const LIMIT: usize = 255;
+    const PREFIX: usize = 16;
+    if safe.len() <= LIMIT - PREFIX {
+        return safe;
     }
-    format!("{stem}.{preferred}")
+    trim_to(&safe, LIMIT - PREFIX)
+}
+
+/// Whether FAT32 will take a character in a long name.
+///
+/// `fatfs::validate_long_name`, which is what refuses the name and which does
+/// it while the image is being written.
+fn fat_allows(character: char) -> bool {
+    matches!(character,
+        'a'..='z' | 'A'..='Z' | '0'..='9'
+        | '\u{80}'..='\u{FFFF}'
+        | '$' | '%' | '\'' | '-' | '_' | '@' | '~' | '`' | '!' | '(' | ')' | '{' | '}'
+        | '.' | ' ' | '+' | ',' | ';' | '=' | '[' | ']' | '^' | '#' | '&')
+}
+
+/// Shorten a name to a byte budget, keeping what it ends in.
+///
+/// The extension is what both databases read the format out of, so it is the
+/// one part that cannot be cut. The stem loses whatever the budget needs, at a
+/// character boundary rather than in the middle of one.
+fn trim_to(name: &str, budget: usize) -> String {
+    let (stem, extension) = split_name(name);
+    let tail = extension.map_or(0, |extension| extension.len() + 1);
+    let mut keep = budget.saturating_sub(tail).min(stem.len());
+    while keep > 0 && !stem.is_char_boundary(keep) {
+        keep -= 1;
+    }
+    match extension {
+        Some(extension) => format!("{}.{extension}", &stem[..keep]),
+        None => stem[..keep].to_string(),
+    }
 }
 
 /// A name as a stem and the extension it claims, if it claims one.
