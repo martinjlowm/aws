@@ -188,12 +188,16 @@ impl Worker {
                 let slot = get(payload, "slot").as_f64().unwrap_or_default() as usize;
 
                 let scratch = Scratch::open(&format!("track-{slot}")).await?;
+                let started = now();
                 let written = self
                     .state
                     .borrow_mut()
                     .archives
                     .extract(archive, &name, scratch.handle())
                     .map_err(describe);
+                if let Ok(bytes) = written {
+                    timed("unpacked", bytes, now() - started);
+                }
                 // Closed before the file is read: a sync handle is exclusive, and
                 // `getFile` on a file still held open fails.
                 let file = scratch.finish().await?;
@@ -252,6 +256,7 @@ impl Worker {
                 let target = get(payload, "target").as_string().unwrap_or_default();
 
                 let scratch = Scratch::open("image.img").await?;
+                let started = now();
                 let written = {
                     let mut state = self.state.borrow_mut();
                     let device = state
@@ -264,6 +269,8 @@ impl Worker {
                 };
                 let file = scratch.finish().await?;
                 let written = written?;
+                let milliseconds = now() - started;
+                timed("wrote the filesystem", written, milliseconds);
 
                 // Dropped here rather than left for the next run: it holds a
                 // reference to every track's file.
@@ -271,6 +278,7 @@ impl Worker {
                 Ok(object(&[
                     ("file", file),
                     ("bytes", JsValue::from_f64(written)),
+                    ("ms", JsValue::from_f64(milliseconds)),
                 ]))
             }
 
@@ -321,6 +329,46 @@ impl Scratch {
         let _ = call(self.sync.as_ref(), "close", &[]);
         resolve(call(&self.file, "getFile", &[])?).await
     }
+}
+
+/// How long the worker has been running, in milliseconds.
+///
+/// A worker has no `Window`, so the clock comes off the global scope's own
+/// `performance` rather than the one a page reaches through `window`.
+fn now() -> f64 {
+    js_sys::Reflect::get(&js_sys::global(), &JsValue::from_str("performance"))
+        .ok()
+        .and_then(|performance| {
+            js_sys::Reflect::get(&performance, &JsValue::from_str("now"))
+                .ok()?
+                .dyn_into::<js_sys::Function>()
+                .ok()?
+                .call0(&performance)
+                .ok()?
+                .as_f64()
+        })
+        .unwrap_or(0.0)
+}
+
+/// Say what a stage cost, where a person looking for it will find it.
+///
+/// Writing a filesystem is one call into the analysis module, so there is
+/// nowhere inside it to report from and nothing to report until it returns.
+/// What can be said is what it was asked to do and how long it took, which is
+/// what turns a wait nobody can see into a number somebody can compare.
+fn timed(stage: &str, bytes: f64, milliseconds: f64) {
+    let rate = if milliseconds > 0.0 {
+        format!(
+            ", {:.0} MB/s",
+            bytes / 1_000_000.0 / (milliseconds / 1000.0)
+        )
+    } else {
+        String::new()
+    };
+    let megabytes = bytes / 1_000_000.0;
+    web_sys::console::log_1(&JsValue::from_str(&format!(
+        "dubplate: {stage} {megabytes:.1} MB in {milliseconds:.0} ms{rate}"
+    )));
 }
 
 /// The directory this worker unpacks into, emptied once per visit.

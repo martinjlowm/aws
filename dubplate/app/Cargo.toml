@@ -70,6 +70,11 @@ gloo-timers = { version = "0.3", features = ["futures"] }
 version = "0.3"
 features = [
   "Blob",
+  # Timings for the one stage that has no other way of saying it is working:
+  # writing a filesystem is a single call into the analysis module, so the only
+  # place its duration can be reported from is either side of that call.
+  "console",
+  "Performance",
   "BlobPropertyBag",
   "DataTransfer",
   "DedicatedWorkerGlobalScope",

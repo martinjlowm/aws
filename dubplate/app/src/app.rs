@@ -309,19 +309,20 @@ fn Download(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
                                     />
                                 </span>
                                 <span class="label">
-                                    {
+                                    {move || {
                                         let size = run.estimate().total;
+                                        let seconds = run.elapsed.get();
                                         if gathered < total {
                                             format!("Collecting {gathered} of {total}")
                                         } else if size > 0 {
                                             format!(
-                                                "Writing {} of filesystem",
+                                                "Writing {} of filesystem, {seconds}s",
                                                 human_bytes(size),
                                             )
                                         } else {
-                                            "Writing the filesystem".to_string()
+                                            format!("Writing the filesystem, {seconds}s")
                                         }
-                                    }
+                                    }}
                                 </span>
                             </div>
                         }

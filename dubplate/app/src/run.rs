@@ -225,6 +225,13 @@ pub struct Run {
     pub device: RwSignal<Device>,
     /// The track whose figures are open, by index.
     pub inspecting: RwSignal<Option<usize>>,
+    /// Seconds since the image started being written.
+    ///
+    /// Writing a filesystem is one call into the analysis module and it reports
+    /// nothing until it returns, so a gigabyte is a minute of a label that does
+    /// not move. This is what moves: not progress, which nothing here can know,
+    /// but proof that the wait is a wait rather than a hang.
+    pub elapsed: RwSignal<u32>,
     /// The audio formats this build's worker can write, by wire name.
     ///
     /// Asked for once on load rather than assumed, because what a module can
@@ -243,6 +250,7 @@ impl Run {
             analysis: RwSignal::new(Analysis::default()),
             device: RwSignal::new(Device::default()),
             inspecting: RwSignal::new(None),
+            elapsed: RwSignal::new(0),
             formats: RwSignal::new(Vec::new()),
             next_source: RwSignal::new(0),
         }
@@ -1259,6 +1267,8 @@ pub async fn build_image(run: Run, pool: Rc<Pool>) {
     }
 
     run.phase.set(Phase::Building { gathered: 0, total });
+    run.elapsed.set(0);
+    tick(run);
 
     if let Err(error) = pool.call_device("device-open", JsValue::UNDEFINED).await {
         return run.phase.set(Phase::Failed(error));
@@ -1307,6 +1317,16 @@ pub async fn build_image(run: Run, pool: Rc<Pool>) {
         Ok(reply) => {
             let image: web_sys::Blob = get(&reply, "file").unchecked_into();
             let bytes = get(&reply, "bytes").as_f64().unwrap_or_default() as usize;
+            // Said on the page as well as in the worker that measured it. A
+            // worker logs to a console of its own, which is one expander deeper
+            // than anybody looking for why a build took a minute will go.
+            let milliseconds = get(&reply, "ms").as_f64().unwrap_or_default();
+            web_sys::console::log_1(&JsValue::from_str(&format!(
+                "dubplate: wrote {} of filesystem in {:.0} ms, {:.0} MB/s",
+                human_bytes(bytes as u64),
+                milliseconds,
+                bytes as f64 / 1_000_000.0 / (milliseconds.max(1.0) / 1000.0),
+            )));
             match object_url(&image) {
                 Ok(url) => run.phase.set(Phase::Ready { url, bytes }),
                 Err(error) => run.phase.set(Phase::Failed(error)),
@@ -1314,6 +1334,23 @@ pub async fn build_image(run: Run, pool: Rc<Pool>) {
         }
         Err(error) => run.phase.set(Phase::Failed(error)),
     }
+}
+
+/// Count the seconds a build has been running, for as long as it runs.
+///
+/// One task rather than a timer the phase has to remember to cancel: it reads
+/// the phase each second and stops itself the moment a build is no longer what
+/// is happening, so every way out of one ends it, including the ways that fail.
+fn tick(run: Run) {
+    leptos::task::spawn_local(async move {
+        loop {
+            gloo_timers::future::TimeoutFuture::new(1_000).await;
+            if !matches!(run.phase.get_untracked(), Phase::Building { .. }) {
+                return;
+            }
+            run.elapsed.update(|seconds| *seconds += 1);
+        }
+    });
 }
 
 /// A URL for a file that never left the browser.
