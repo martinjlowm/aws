@@ -323,12 +323,24 @@ impl Scratch {
     }
 }
 
-/// The origin-private filesystem's root, resolved once.
+/// The directory this worker unpacks into, emptied once per visit.
 ///
-/// `getDirectory` answers with the same directory every time and answers through
-/// a promise, so asking per extraction is a scheduler round trip per track for
-/// something that cannot change. A short archive of short tracks is where that
-/// shows: the arithmetic is milliseconds and the waiting is not.
+/// Everything written here is scratch: a track pulled out of a zip so the
+/// analyser has a file to read, and the image built from the tracks that were
+/// kept. None of it is worth a second visit, and all of it is the size of the
+/// music, so leaving it behind means a page that quietly fills somebody's disk
+/// with gigabytes nothing will ever reclaim.
+///
+/// One directory holds all of it, which is what makes clearing it one call
+/// rather than a walk over names this worker would have to guess. It is removed
+/// and remade the first time anything asks for it, so a visit starts empty and
+/// last visit's files go with it. Within a visit the files stay, because the
+/// page holds a `File` over each one and the device reads them when the image is
+/// written.
+///
+/// Only the worker the page reserves for archives and the device ever asks. If
+/// the measuring workers did, one would empty the directory the other was
+/// reading out of.
 async fn root() -> Result<JsValue, String> {
     thread_local! {
         static ROOT: RefCell<Option<JsValue>> = const { RefCell::new(None) };
@@ -337,10 +349,41 @@ async fn root() -> Result<JsValue, String> {
     if let Some(directory) = ROOT.with(|root| root.borrow().clone()) {
         return Ok(directory);
     }
-    let directory = resolve(call(&storage()?, "getDirectory", &[])?).await?;
+
+    let origin = resolve(call(&storage()?, "getDirectory", &[])?).await?;
+
+    // Last visit's, if the browser kept it. A first visit has nothing to remove
+    // and says so by rejecting, which is not a failure worth reporting.
+    if let Ok(removing) = call(
+        &origin,
+        "removeEntry",
+        &[
+            JsValue::from_str(SCRATCH),
+            object(&[("recursive", JsValue::TRUE)]),
+        ],
+    ) {
+        let _ = resolve(removing).await;
+    }
+
+    let directory = resolve(call(
+        &origin,
+        "getDirectoryHandle",
+        &[
+            JsValue::from_str(SCRATCH),
+            object(&[("create", JsValue::TRUE)]),
+        ],
+    )?)
+    .await?;
+
     ROOT.with(|root| *root.borrow_mut() = Some(directory.clone()));
     Ok(directory)
 }
+
+/// Where the unpacked tracks and the image go.
+///
+/// A directory of its own rather than the root, so clearing it cannot touch
+/// anything another page on this origin put there.
+const SCRATCH: &str = "dubplate-scratch";
 
 /// The origin-private filesystem, as this worker reaches it.
 fn storage() -> Result<JsValue, String> {
