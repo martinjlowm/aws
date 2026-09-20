@@ -879,10 +879,13 @@ async fn append_archive(
     };
     // `entries` answers for every archive at once, and the ones wanted here are
     // the ones the archive just added holds.
-    let entries: Vec<Entry> = entries
+    let mut entries: Vec<Entry> = entries
         .into_iter()
         .filter(|entry| entry.archive == index)
         .collect();
+    for entry in &mut entries {
+        entry.repair();
+    }
 
     if entries.is_empty() {
         return run.phase.set(Phase::Failed(format!(
@@ -1272,6 +1275,75 @@ struct Entry {
     file_name: String,
     size: u64,
 }
+
+impl Entry {
+    /// Put right a name the archive wrote as UTF-8 and the reader took for
+    /// code page 437.
+    ///
+    /// Both fields, because one is what the track is called and the other is
+    /// what the archive is keyed by, and a half-repaired entry is one that
+    /// either reads wrong or cannot be found.
+    fn repair(&mut self) {
+        if let Some(name) = undo_cp437(&self.name) {
+            self.name = name;
+        }
+        if let Some(file_name) = undo_cp437(&self.file_name) {
+            self.file_name = file_name;
+        }
+    }
+}
+
+/// Recover a name the archive stored as UTF-8 and the reader decoded as
+/// code page 437.
+///
+/// A zip says whether its names are UTF-8 in one flag of one header, and the
+/// tools people actually zip with leave that flag clear while writing UTF-8
+/// anyway. A reader that believes the flag decodes those bytes as code page
+/// 437, so `Beyoncé` arrives as `Beyonc├⌐`: the two bytes of the `é` read as
+/// two symbols from a character set nobody has used since DOS.
+///
+/// The bytes under the mistake are still the UTF-8 they always were, and they
+/// are also the key the archive indexes that entry by, so undoing it repairs
+/// the name on the stick and the lookup that extracts it in one move.
+///
+/// `None` when there is nothing to undo. An ASCII name encodes back to itself,
+/// and a name genuinely written in code page 437 gives bytes that are not
+/// UTF-8, which is what distinguishes the two cases without guessing.
+fn undo_cp437(name: &str) -> Option<String> {
+    let mut raw = Vec::with_capacity(name.len());
+    for character in name.chars() {
+        raw.push(cp437_byte(character)?);
+    }
+    let recovered = String::from_utf8(raw).ok()?;
+    (recovered != name).then_some(recovered)
+}
+
+/// The byte code page 437 writes a character as.
+fn cp437_byte(character: char) -> Option<u8> {
+    if character.is_ascii() {
+        return Some(character as u8);
+    }
+    CP437_HIGH
+        .iter()
+        .position(|known| *known == character)
+        .map(|at| 0x80 + at as u8)
+}
+
+/// What code page 437 puts in `0x80..=0xFF`.
+///
+/// The half that differs from ASCII, which is the half a mistaken decode draws
+/// from. Written out rather than reached for through a crate: it is a constant
+/// from 1981 and it is not going to change.
+const CP437_HIGH: [char; 128] = [
+    'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', //
+    'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ', //
+    'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»', //
+    '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐', //
+    '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', //
+    '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀', //
+    'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩', //
+    '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', '\u{a0}',
+];
 
 /// A file for a row whose own file has not arrived.
 ///
