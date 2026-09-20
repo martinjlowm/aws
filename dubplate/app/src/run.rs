@@ -249,36 +249,40 @@ impl Run {
     }
 
     pub fn measured(&self) -> usize {
-        self.tracks
-            .get()
-            .iter()
-            .filter(|track| matches!(track.stage, Stage::Done(_)))
-            .count()
+        self.tracks.with(|tracks| {
+            tracks
+                .iter()
+                .filter(|track| matches!(track.stage, Stage::Done(_)))
+                .count()
+        })
     }
 
     pub fn failed(&self) -> usize {
-        self.tracks
-            .get()
-            .iter()
-            .filter(|track| matches!(track.stage, Stage::Failed(_)))
-            .count()
+        self.tracks.with(|tracks| {
+            tracks
+                .iter()
+                .filter(|track| matches!(track.stage, Stage::Failed(_)))
+                .count()
+        })
     }
 
     /// Every report, in the order the sources listed them.
     pub fn reports(&self) -> Vec<Arc<Report>> {
-        self.tracks
-            .get()
-            .iter()
-            .filter_map(|track| match &track.stage {
-                Stage::Done(report) => Some(report.clone()),
-                _ => None,
-            })
-            .collect()
+        self.tracks.with(|tracks| {
+            tracks
+                .iter()
+                .filter_map(|track| match &track.stage {
+                    Stage::Done(report) => Some(report.clone()),
+                    _ => None,
+                })
+                .collect()
+        })
     }
 
     /// Where every track stands with respect to the image, one per row.
     pub fn standing(&self) -> Vec<Standing> {
-        standing(&self.tracks.get(), self.device.get().format)
+        let format = self.device.get().format;
+        self.tracks.with(|tracks| standing(tracks, format))
     }
 
     pub fn selected(&self) -> usize {
@@ -350,7 +354,7 @@ impl Run {
             .update(|tracks| tracks.retain(|track| !gone.contains(&track.source)));
         self.inspecting.set(None);
         self.invalidate();
-        if self.tracks.get_untracked().is_empty() {
+        if self.tracks.with_untracked(|tracks| tracks.is_empty()) {
             self.phase.set(Phase::Idle);
         }
     }
@@ -525,19 +529,19 @@ const DATABASE_PER_SECOND: u64 = 536;
 impl Run {
     /// What the image would come to if it were built right now.
     pub fn estimate(&self) -> Estimate {
-        let tracks = self.tracks.get();
         let format = self.device.get().format;
-        let standing = standing(&tracks, format);
-
-        let mut audio = 0u64;
-        let mut seconds = 0f64;
-        for (track, standing) in tracks.iter().zip(standing) {
-            if standing != Standing::Kept {
-                continue;
+        let (audio, seconds) = self.tracks.with(|tracks| {
+            let mut audio = 0u64;
+            let mut seconds = 0f64;
+            for (track, standing) in tracks.iter().zip(standing(tracks, format)) {
+                if standing != Standing::Kept {
+                    continue;
+                }
+                audio += track.image_bytes(format);
+                seconds += track.duration_seconds();
             }
-            audio += track.image_bytes(format);
-            seconds += track.duration_seconds();
-        }
+            (audio, seconds)
+        });
 
         if audio == 0 {
             return Estimate {
@@ -897,7 +901,7 @@ async fn append_archive(
         // The row goes up before the extraction and says so. A track inside a
         // zip is decompressed before anything can measure it, and on a long WAV
         // that is a second where the person is owed a line that moves.
-        let slot = run.tracks.get_untracked().len();
+        let slot = run.tracks.with_untracked(|tracks| tracks.len());
         run.tracks.update(|tracks| {
             tracks.push(Track {
                 source: id,
@@ -963,7 +967,7 @@ async fn append_track(
     let name = file.name();
     let id = run.claim(name.clone(), Kind::Loose);
 
-    let index = run.tracks.get_untracked().len();
+    let index = run.tracks.with_untracked(|tracks| tracks.len());
     run.tracks.update(|tracks| {
         tracks.push(Track {
             source: id,
@@ -1100,9 +1104,7 @@ impl Settings {
 async fn measure(run: Run, pool: &Pool, index: usize, display_name: &str, settings: &Settings) {
     let Some(audio) = run
         .tracks
-        .get_untracked()
-        .get(index)
-        .map(|track| track.audio.clone())
+        .with_untracked(|tracks| tracks.get(index).map(|track| track.audio.clone()))
     else {
         return;
     };

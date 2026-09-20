@@ -118,13 +118,15 @@ fn Row(
 
 /// Tracks from the sources a predicate accepts, and how many reach the image.
 fn count(run: Run, mine: impl Fn(u32) -> bool) -> (usize, usize) {
-    let tracks = run.tracks.get();
-    let counted: Vec<Standing> = tracks
-        .iter()
-        .zip(run.standing())
-        .filter(|(track, _)| mine(track.source))
-        .map(|(_, standing)| standing)
-        .collect();
+    let standing = run.standing();
+    let counted: Vec<Standing> = run.tracks.with(|tracks| {
+        tracks
+            .iter()
+            .zip(standing)
+            .filter(|(track, _)| mine(track.source))
+            .map(|(_, standing)| standing)
+            .collect()
+    });
     (
         counted.len(),
         counted

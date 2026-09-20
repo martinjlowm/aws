@@ -295,7 +295,7 @@ impl Scratch {
     /// The same name twice is the same file twice, which is deliberate: a slot
     /// is reused across runs and `extract` truncates what it finds.
     async fn open(name: &str) -> Result<Scratch, String> {
-        let directory = resolve(call(&storage()?, "getDirectory", &[])?).await?;
+        let directory = root().await?;
         let file = resolve(call(
             &directory,
             "getFileHandle",
@@ -321,6 +321,25 @@ impl Scratch {
         let _ = call(self.sync.as_ref(), "close", &[]);
         resolve(call(&self.file, "getFile", &[])?).await
     }
+}
+
+/// The origin-private filesystem's root, resolved once.
+///
+/// `getDirectory` answers with the same directory every time and answers through
+/// a promise, so asking per extraction is a scheduler round trip per track for
+/// something that cannot change. A short archive of short tracks is where that
+/// shows: the arithmetic is milliseconds and the waiting is not.
+async fn root() -> Result<JsValue, String> {
+    thread_local! {
+        static ROOT: RefCell<Option<JsValue>> = const { RefCell::new(None) };
+    }
+
+    if let Some(directory) = ROOT.with(|root| root.borrow().clone()) {
+        return Ok(directory);
+    }
+    let directory = resolve(call(&storage()?, "getDirectory", &[])?).await?;
+    ROOT.with(|root| *root.borrow_mut() = Some(directory.clone()));
+    Ok(directory)
 }
 
 /// The origin-private filesystem, as this worker reaches it.

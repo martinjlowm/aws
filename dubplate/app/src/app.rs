@@ -102,7 +102,7 @@ pub fn App() -> impl IntoView {
                         formats=Signal::derive(move || run.formats.get())
                     />
 
-                    <Show when=move || { !run.tracks.get().is_empty() }>
+                    <Show when=move || { !run.tracks.with(|tracks| tracks.is_empty()) }>
                         <Runway run=run />
                         <Tracks run=run />
                     </Show>
@@ -170,7 +170,7 @@ fn Header() -> impl IntoView {
 /// How far along the run is.
 #[component]
 fn Runway(run: Run) -> impl IntoView {
-    let total = move || run.tracks.get().len();
+    let total = move || run.tracks.with(|tracks| tracks.len());
     let settled = move || run.measured() + run.failed();
 
     view! {
@@ -263,8 +263,8 @@ fn Download(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
                      and read the disk number twice."
                 </CardDescription>
                 <CardDescription class="mt-2 max-w-prose text-[length:var(--text-body-sm)]">
-                    "The archives are read again here for the tracks that are still ticked, which
-                     is why this takes a second pass rather than starting from what was measured."
+                    "Only the ticked tracks are written. Each one is already a file of its own, so
+                     nothing is unpacked twice and a track left off costs nothing."
                 </CardDescription>
             </CardHeader>
 
