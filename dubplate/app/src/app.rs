@@ -200,9 +200,16 @@ fn Runway(run: Run) -> impl IntoView {
 
             <CardContent class="px-7 pb-6">
                 <div class="mt-4">
+                    // Given as a percentage, with the maximum left at its
+                    // default. The component reads `max` once in its own body
+                    // rather than inside a closure, so a maximum that grows as
+                    // rows arrive is read when the first row does and never
+                    // again: the bar would fill against a denominator of one.
+                    // Only `value` is tracked, so only `value` may move.
                     <Progress
-                        value=Signal::derive(move || settled() as f64)
-                        max=Signal::derive(move || total().max(1) as f64)
+                        value=Signal::derive(move || {
+                            settled() as f64 / total().max(1) as f64 * 100.0
+                        })
                         animated=Signal::derive(move || {
                             matches!(
                                 run.phase.get(),
@@ -302,11 +309,19 @@ fn Download(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
                                     />
                                 </span>
                                 <span class="label">
-                                    {if gathered < total {
-                                        format!("Collecting {gathered} of {total}")
-                                    } else {
-                                        "Writing the filesystem".to_string()
-                                    }}
+                                    {
+                                        let size = run.estimate().total;
+                                        if gathered < total {
+                                            format!("Collecting {gathered} of {total}")
+                                        } else if size > 0 {
+                                            format!(
+                                                "Writing {} of filesystem",
+                                                human_bytes(size),
+                                            )
+                                        } else {
+                                            "Writing the filesystem".to_string()
+                                        }
+                                    }
                                 </span>
                             </div>
                         }
