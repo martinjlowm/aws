@@ -7,7 +7,9 @@ use crate::components::section::SectionHeading;
 use crate::components::settings::Settings;
 use crate::components::sources::Sources;
 use crate::components::tracks::Tracks;
-use crate::run::{Phase, Run, append_all, build_image, human_bytes, read_capabilities};
+use crate::run::{
+    Phase, Run, append_all, build_image, expected_seconds, human_bytes, read_capabilities,
+};
 use leptos::prelude::*;
 use leptos_shadcn_ui::{
     Badge, BadgeVariant, Button, ButtonSize, Card, CardContent, CardDescription, CardHeader,
@@ -315,10 +317,23 @@ fn Download(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
                                         if gathered < total {
                                             format!("Collecting {gathered} of {total}")
                                         } else if size > 0 {
-                                            format!(
-                                                "Writing {} of filesystem, {seconds}s",
-                                                human_bytes(size),
-                                            )
+                                            // The expectation is dropped once it
+                                            // is overtaken. A number a person has
+                                            // already watched pass is worse than
+                                            // no number: it stops describing the
+                                            // wait and starts arguing with it.
+                                            let expected = expected_seconds(size);
+                                            if seconds < expected {
+                                                format!(
+                                                    "Writing {} of filesystem, {seconds}s of about {expected}s",
+                                                    human_bytes(size),
+                                                )
+                                            } else {
+                                                format!(
+                                                    "Writing {} of filesystem, {seconds}s",
+                                                    human_bytes(size),
+                                                )
+                                            }
                                         } else {
                                             format!("Writing the filesystem, {seconds}s")
                                         }
