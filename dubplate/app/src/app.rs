@@ -9,6 +9,7 @@ use crate::components::sources::Sources;
 use crate::components::tracks::Tracks;
 use crate::run::{
     Phase, Run, append_all, build_image, expected_seconds, human_bytes, read_capabilities,
+    read_defaults,
 };
 use leptos::prelude::*;
 use leptos_shadcn_ui::{
@@ -30,7 +31,8 @@ pub fn App() -> impl IntoView {
     // What this build can write is asked once, before anything is dropped, so
     // the settings form is right the first time it is opened.
     if let Some(ready) = pool.with_value(Clone::clone) {
-        leptos::task::spawn_local(read_capabilities(run, ready));
+        leptos::task::spawn_local(read_capabilities(run, ready.clone()));
+        leptos::task::spawn_local(read_defaults(run, ready));
     }
 
     // An image describes the settings it was built from, and a finished one is
@@ -100,6 +102,7 @@ pub fn App() -> impl IntoView {
 
                     <Settings
                         analysis=run.analysis
+                        defaults=Signal::derive(move || run.defaults.get())
                         device=run.device
                         formats=Signal::derive(move || run.formats.get())
                     />

@@ -225,6 +225,13 @@ pub struct Run {
     pub device: RwSignal<Device>,
     /// The track whose figures are open, by index.
     pub inspecting: RwSignal<Option<usize>>,
+    /// The settings as the analysis module defaults them.
+    ///
+    /// Seeded from this crate's own copy so the form has something to draw
+    /// before the worker has answered, then replaced by what the module
+    /// reports. What "Defaults" means in the form, and what the reset button
+    /// resets to, is this rather than the copy.
+    pub defaults: RwSignal<Analysis>,
     /// Seconds since the image started being written.
     ///
     /// Writing a filesystem is one call into the analysis module and it reports
@@ -250,6 +257,7 @@ impl Run {
             analysis: RwSignal::new(Analysis::default()),
             device: RwSignal::new(Device::default()),
             inspecting: RwSignal::new(None),
+            defaults: RwSignal::new(Analysis::default()),
             elapsed: RwSignal::new(0),
             formats: RwSignal::new(Vec::new()),
             next_source: RwSignal::new(0),
@@ -856,6 +864,29 @@ async fn append(run: Run, pool: Rc<Pool>, file: File, permits: &Rc<Permits>, set
              format the analyser has a reader for: WAV, AIFF, FLAC, MP3, and the audio \
              inside an MP4, M4A, WebM or Ogg."
         )));
+    }
+}
+
+/// Ask the worker for the settings the analysis module defaults to.
+///
+/// The form is drawn from this rather than from the copy in `options.rs`, so a
+/// default changed in `pipeline` reaches the page without anybody editing the
+/// page. A version that moves one is otherwise a version this form quietly goes
+/// on overriding, which is what happened when the metrical floor moved to 80 and
+/// is the reason the round trip exists.
+///
+/// The answer replaces the settings as well as the defaults. It arrives before
+/// anything has been dropped, so there is nothing of anybody's to overwrite.
+pub async fn read_defaults(run: Run, pool: Rc<Pool>) {
+    let Ok(reply) = pool
+        .call_device("default-options", JsValue::UNDEFINED)
+        .await
+    else {
+        return;
+    };
+    if let Ok(defaults) = serde_wasm_bindgen::from_value::<Analysis>(reply) {
+        run.defaults.set(defaults.clone());
+        run.analysis.set(defaults);
     }
 }
 

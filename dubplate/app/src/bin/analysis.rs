@@ -25,7 +25,7 @@
 //! the order they arrive, so a state that is taken out and put back cannot be
 //! taken twice.
 
-use dubplate_wasm::{Archives, Device, Source, SyncHandle, analyze};
+use dubplate_wasm::{Archives, Device, Source, SyncHandle, analyze, default_options};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -146,6 +146,15 @@ impl Worker {
                 }
                 Ok(object(&[("formats", formats.into())]))
             }
+
+            // Every analysis setting, as the module itself defaults them.
+            //
+            // The form draws its own numbers first, because it exists before
+            // this worker answers anything, and replaces them with these. A
+            // default changed in `pipeline` therefore reaches the page without
+            // anyone editing the page, which is what keeps a form from going on
+            // sending a value the analysis has moved away from.
+            "default-options" => default_options().map_err(describe),
 
             // One more zip, kept open beside the ones already given.
             //

@@ -198,6 +198,7 @@ certificate as a subject alternative name, and a second pair of alias records.
 | Request | Payload | Reply |
 |---|---|---|
 | `capabilities` | | `{formats: [...]}`, the audio formats this build can write |
+| `default-options` | | every analysis setting, as `pipeline` defaults it |
 | `archive-open` | the archive's bytes | `{entries: [{name, size}]}` for every audio file in it |
 | `archive-extract` | one name | `{bytes}` |
 | `archive-close` | | `{}` |
@@ -291,6 +292,19 @@ through `symphonia::default::get_probe()`, which offers whatever symphonia was
 compiled with. Naming `isomp4`, `aac` and `alac` in this crate's manifest adds
 them to that probe by feature unification, so the terminal and the page decode
 the same file the same way with no patch to dubplate's crates.
+
+### Where the form gets its numbers
+
+The settings form draws `pipeline`'s own defaults, asked for once on load
+through `default-options`. `options.rs` carries a copy, and that copy is only
+what the form shows in the moment before the worker answers.
+
+The copy used to be the whole story, and it drifted. dubplate moved the metrical
+floor from 90 to 80, because 90 is a tempo a great deal of hip-hop and R&B is
+written at and a track measured at 89.99 was being reported as 179.96. A page
+still sending 90 would have gone on reporting it that way against an analyser
+that had already been fixed, which is the failure this round trip exists to make
+impossible.
 
 ### What the worker says it can write
 

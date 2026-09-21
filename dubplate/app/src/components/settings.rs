@@ -20,6 +20,11 @@ use leptos_shadcn_ui::{
 #[component]
 pub fn Settings(
     analysis: RwSignal<Analysis>,
+    /// The settings as the analysis module defaults them, which is what
+    /// "Defaults" means here and what the reset returns to. Read from the
+    /// module rather than from this crate, so a default that moves upstream
+    /// moves here.
+    defaults: Signal<Analysis>,
     device: RwSignal<Device>,
     /// What the worker said it can write, by wire name. Every other format is
     /// drawn and disabled rather than hidden, because the question a person has
@@ -46,7 +51,7 @@ pub fn Settings(
                     <span class="flex items-center gap-4">
                         <span class="label">
                             {move || {
-                                if analysis.get() == Analysis::default() {
+                                if analysis.get() == defaults.get() {
                                     "Defaults".to_string()
                                 } else {
                                     "Changed".to_string()
@@ -357,6 +362,23 @@ pub fn Settings(
                                 analysis.update(|a| a.integer_snap = next)
                             })
                         />
+                        <Field
+                            label="Energy bands"
+                            note=Signal::derive(|| {
+                                "Let a track's own brightness, crest factor, onset density and \
+                                 high-frequency share choose a tempo prior for it. Off by default, \
+                                 for the reason a prior is off by default, and outranked by one \
+                                 set by hand. A run that uses it says so in the track's findings."
+                                    .to_string()
+                            })
+                        >
+                            <Switch
+                                checked=Signal::derive(move || analysis.get().energy_bands)
+                                on_change=Callback::new(move |next: bool| {
+                                    analysis.update(|a| a.energy_bands = next)
+                                })
+                            />
+                        </Field>
                         <Optional
                             label="Tempo prior"
                             unit="BPM"
@@ -446,7 +468,7 @@ pub fn Settings(
                         variant=ButtonVariant::Ghost
                         size=ButtonSize::Sm
                         class="label"
-                        on_click=Callback::new(move |()| analysis.set(Analysis::default()))
+                        on_click=Callback::new(move |()| analysis.set(defaults.get()))
                     >
                         "Reset to the defaults the CLI prints"
                     </Button>

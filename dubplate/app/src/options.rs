@@ -1,15 +1,24 @@
 //! The settings a run uses, as a form fills them in.
 //!
 //! Every field is one of `pipeline::AnalysisOptions`, and the names are the ones
-//! serde writes on the other side. The defaults are stated here because the page
-//! has to draw a form before it has asked the worker anything; they are checked
-//! against the module's own on load, and a mismatch is a bug in this file rather
-//! than a difference of opinion.
+//! serde writes on the other side.
+//!
+//! The numbers below are a starting point and not the answer. A page has to draw
+//! a form before it has asked the worker anything, so it draws these, and then
+//! `default-options` replaces them with what the module itself reports. That
+//! round trip is the whole reason they cannot drift: a default changed in
+//! `pipeline` reaches this form without anybody editing this file, and a version
+//! that moves one is not a version that quietly keeps the old value.
+//!
+//! They did drift, once, which is why the round trip is here. The metrical floor
+//! sat at 90 in both places until dubplate moved it to 80, and a page still
+//! sending 90 would have gone on reporting a track measured at 89.99 as 179.96,
+//! which is the bug that move exists to fix.
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(default, rename_all = "kebab-case")]
 pub struct Analysis {
     pub window: usize,
     pub hop: usize,
@@ -24,6 +33,8 @@ pub struct Analysis {
     pub metrical_floor: f64,
     pub metrical_floor_ratio: f64,
     pub integer_snap: f64,
+    /// Whether to let a track's measured energy choose a tempo prior.
+    pub energy_bands: bool,
     pub tempo_prior: Option<f64>,
     pub tempo_prior_width: f64,
     pub key_profile: Profile,
@@ -59,9 +70,10 @@ impl Default for Analysis {
             bpm_resolution: 0.1,
             pulses: 4,
             comb_penalty: 0.0,
-            metrical_floor: 90.0,
+            metrical_floor: 80.0,
             metrical_floor_ratio: 0.5,
             integer_snap: 0.25,
+            energy_bands: false,
             tempo_prior: None,
             tempo_prior_width: 0.7,
             key_profile: Profile::Temperley,
