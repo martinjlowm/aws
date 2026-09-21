@@ -35,6 +35,16 @@ pub struct Analysis {
     pub integer_snap: f64,
     pub key_profile: Profile,
     pub tuning_cents: Option<f64>,
+    /// Bars between a memory cue and the hot cue it runs into.
+    pub memory_offset_bars: usize,
+    /// Length of the loop the two loop pads mark out, in bars.
+    pub loop_bars: usize,
+    /// Share of the track before which a drop is a taste of the hook rather
+    /// than the drop.
+    pub drop_after_fraction: f64,
+    /// Whether to skip the near-silence at the head of the file before
+    /// measuring anything.
+    pub trim_lead_in: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,6 +81,10 @@ impl Default for Analysis {
             integer_snap: 0.25,
             key_profile: Profile::Temperley,
             tuning_cents: None,
+            memory_offset_bars: 16,
+            loop_bars: 4,
+            drop_after_fraction: 0.2,
+            trim_lead_in: true,
         }
     }
 }

@@ -80,6 +80,7 @@ pub fn Settings(
                             <TabsTrigger value="transform">"Transform"</TabsTrigger>
                             <TabsTrigger value="tempo">"Tempo"</TabsTrigger>
                             <TabsTrigger value="key">"Key"</TabsTrigger>
+                            <TabsTrigger value="cues">"Cues"</TabsTrigger>
                         </TabsList>
                     <TabsContent value="device">
                     <Group
@@ -416,6 +417,67 @@ pub fn Settings(
                             value=Signal::derive(move || analysis.get().tuning_cents)
                             set=Callback::new(move |next: Option<f64>| {
                                 analysis.update(|a| a.tuning_cents = next)
+                            })
+                        />
+                    </Group>
+
+                    </TabsContent>
+
+                    <TabsContent value="cues">
+                    <Group
+                        title="Cues"
+                        note="Where the eight pads land. The sections are measured from the band \
+                              energies the onset detector already computed, and the pads are fixed \
+                              to roles rather than to tracks, because the hands learn the pad."
+                    >
+                        <Field
+                            label="Trim the lead-in"
+                            note=Signal::derive(|| {
+                                "Skip the near-silence at the head of the file before measuring \
+                                 anything. On, because a grid laid from sample zero on a track that \
+                                 opens with two seconds of black carries that offset into every \
+                                 bar, and a first beat at 2.1 seconds is one nothing can cue to."
+                                    .to_string()
+                            })
+                        >
+                            <Switch
+                                checked=Signal::derive(move || analysis.get().trim_lead_in)
+                                on_change=Callback::new(move |next: bool| {
+                                    analysis.update(|a| a.trim_lead_in = next)
+                                })
+                            />
+                        </Field>
+                        <Number
+                            label="Memory offset"
+                            unit="bars"
+                            note="How far ahead of its hot cue a memory cue sits. Sixteen bars is \
+                                  where a mix starts rather than where the section does."
+                            step=1.0
+                            value=Signal::derive(move || analysis.get().memory_offset_bars as f64)
+                            set=Callback::new(move |next: f64| {
+                                analysis.update(|a| a.memory_offset_bars = next.max(0.0) as usize)
+                            })
+                        />
+                        <Number
+                            label="Loop length"
+                            unit="bars"
+                            note="What the two loop pads mark out."
+                            step=1.0
+                            value=Signal::derive(move || analysis.get().loop_bars as f64)
+                            set=Callback::new(move |next: f64| {
+                                analysis.update(|a| a.loop_bars = next.max(1.0) as usize)
+                            })
+                        />
+                        <Number
+                            label="Drop after"
+                            unit="of the track"
+                            note="How far in a drop has to be to count as the drop rather than a \
+                                  taste of the hook. When every drop is earlier than this the \
+                                  earliest one takes the pad, and the run says the rule bent."
+                            step=0.05
+                            value=Signal::derive(move || analysis.get().drop_after_fraction)
+                            set=Callback::new(move |next: f64| {
+                                analysis.update(|a| a.drop_after_fraction = next.clamp(0.0, 1.0))
                             })
                         />
                     </Group>

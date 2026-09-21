@@ -104,7 +104,7 @@ dependencies = [
 [[package]]
 name = "audio"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "hound",
  "symphonia",
@@ -235,7 +235,7 @@ dependencies = [
 [[package]]
 name = "collection"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "serde",
  "serde_json",
@@ -474,7 +474,7 @@ dependencies = [
 [[package]]
 name = "diagnostics"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "serde",
 ]
@@ -509,7 +509,7 @@ checksum = "669a445ee724c5c69b1b06fe0b63e70a1c84bc9bb7d9696cd4f4e3ec45050408"
 [[package]]
 name = "dubplate-wasm"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "audio",
  "collection",
@@ -567,7 +567,7 @@ dependencies = [
 [[package]]
 name = "energy"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "serde",
 ]
@@ -575,7 +575,7 @@ dependencies = [
 [[package]]
 name = "engine"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "collection",
  "deku",
@@ -858,7 +858,7 @@ dependencies = [
 [[package]]
 name = "goertzel"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 
 [[package]]
 name = "guardian"
@@ -1065,7 +1065,7 @@ dependencies = [
 [[package]]
 name = "image"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "collection",
  "fatfs",
@@ -1117,7 +1117,7 @@ dependencies = [
 [[package]]
 name = "key-detect"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "diagnostics",
  "serde",
@@ -1736,7 +1736,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 [[package]]
 name = "pipeline"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "audio",
  "energy",
@@ -1744,6 +1744,7 @@ dependencies = [
  "report",
  "serde",
  "spectral",
+ "structure",
  "tempo",
  "waveform",
 ]
@@ -1994,7 +1995,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 [[package]]
 name = "rekordbox"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "collection",
  "deku",
@@ -2004,7 +2005,7 @@ dependencies = [
 [[package]]
 name = "report"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "diagnostics",
  "energy",
@@ -2012,6 +2013,7 @@ dependencies = [
  "png",
  "serde",
  "serde_json",
+ "structure",
  "tempo",
  "waveform",
 ]
@@ -2294,7 +2296,7 @@ checksum = "b9be42f50aa861c555654aa3a37f52f4b1074bacf4e48fe0ef7fa584e80f1f0f"
 [[package]]
 name = "spectral"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "rustfft",
 ]
@@ -2328,6 +2330,15 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "structure"
+version = "0.1.0"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
+dependencies = [
+ "diagnostics",
+ "serde",
+]
 
 [[package]]
 name = "symphonia"
@@ -2623,7 +2634,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 [[package]]
 name = "tempo"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "diagnostics",
  "goertzel",
@@ -2936,7 +2947,7 @@ dependencies = [
 [[package]]
 name = "waveform"
 version = "0.1.0"
-source = "git+https://github.com/martinjlowm/dubplate?rev=bddd11d098a1286f7ccfe9fd141eb9069ae362ac#bddd11d098a1286f7ccfe9fd141eb9069ae362ac"
+source = "git+https://github.com/martinjlowm/dubplate?rev=32ee7e2bd51ab4d11f5ceede1b683b330443dacd#32ee7e2bd51ab4d11f5ceede1b683b330443dacd"
 dependencies = [
  "deku",
  "serde",
