@@ -365,10 +365,13 @@ pub fn Settings(
                         <Field
                             label="Energy bands"
                             note=Signal::derive(|| {
-                                "Let a track's own brightness, crest factor, onset density and \
-                                 high-frequency share choose a tempo prior for it. Off by default, \
-                                 for the reason a prior is off by default, and outranked by one \
-                                 set by hand. A run that uses it says so in the track's findings."
+                                "A track's own brightness, crest factor, onset density and \
+                                 high-frequency share choose a tempo prior for it. On, because a \
+                                 measurement is a better guess than a person's, and because none of \
+                                 the four reads anything the tempo stage produced: a track reported \
+                                 at twice its tempo cannot carry that error into the check meant to \
+                                 catch it. Turn it off to read the salience curve's own answer. A \
+                                 run that is given a prior says so in the track's findings."
                                     .to_string()
                             })
                         >
@@ -379,23 +382,10 @@ pub fn Settings(
                                 })
                             />
                         </Field>
-                        <Optional
-                            label="Tempo prior"
-                            unit="BPM"
-                            note="Centre of a log-normal prior. Off unless set, because a prior is how \
-                                  a detector reports the tempo it expected. When one picks the winner, \
-                                  the run says so."
-                            fallback=128.0
-                            step=1.0
-                            value=Signal::derive(move || analysis.get().tempo_prior)
-                            set=Callback::new(move |next: Option<f64>| {
-                                analysis.update(|a| a.tempo_prior = next)
-                            })
-                        />
                         <Number
                             label="Prior width"
                             unit="octaves"
-                            note="Width of the tempo prior. Ignored while no prior is set."
+                            note="Width of the prior the bands choose. Ignored while they are off."
                             step=0.1
                             value=Signal::derive(move || analysis.get().tempo_prior_width)
                             set=Callback::new(move |next: f64| {
