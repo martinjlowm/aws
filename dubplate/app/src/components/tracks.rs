@@ -152,6 +152,13 @@ fn Row(
     };
     let running = track.stage.is_running();
     let has_report = report.is_some();
+    // What a row is doing, for the line under its name.
+    let status = match &track.stage {
+        Stage::Waiting => "Waiting",
+        Stage::Extracting => "Unpacking",
+        Stage::Measuring => "Measuring",
+        Stage::Done(_) | Stage::Failed(_) => "",
+    };
     let included = track.included;
     let name = track.display_name().to_string();
     let display_name = name.clone();
@@ -164,6 +171,29 @@ fn Row(
         let track = track.clone();
         move || track.image_name(run.device.get().format)
     };
+    // One line under the name, whatever the row is doing, because a table that
+    // grows a line per track as the answers arrive resettles under the pointer
+    // of somebody reading it. The slot holds whichever of these matters most:
+    // why the track failed, why it is not going on the image, what it was called
+    // before it was renamed, or what is happening to it.
+    //
+    // The failure is truncated rather than wrapped, for the same reason, and
+    // carries the whole of itself in its title.
+    let (sub_line, sub_is_bad) = if let Some(why) = failure.clone() {
+        (why, true)
+    } else if let Some(reason) = standing.reason() {
+        (reason.to_string(), true)
+    } else if has_report {
+        (display_name.clone(), false)
+    } else {
+        (status.to_string(), false)
+    };
+    let sub_line = if sub_line.is_empty() {
+        "\u{a0}".to_string()
+    } else {
+        sub_line
+    };
+
     // Ties the button to the row it opens, so a screen reader reaches the
     // evidence from the name rather than hunting for it.
     let evidence_id = format!("evidence-{index}");
@@ -223,41 +253,40 @@ fn Row(
                                 move || image_name().unwrap_or_else(|| name.clone())
                             }
                         </span>
-                        <Show when=move || has_report>
-                            <span class="label mt-1 block">{name.clone()}</span>
-                        </Show>
+                        <span
+                            class="label mt-1 block truncate"
+                            title=sub_line.clone()
+                            style=if sub_is_bad { "color: var(--status-danger)" } else { "" }
+                        >
+                            {sub_line.clone()}
+                        </span>
                     </span>
                 </button>
-
-                // Why a row is off, said where the row is rather than in a
-                // count at the top of the table.
-                {standing
-                    .reason()
-                    .map(|reason| {
-                        view! {
-                            <span
-                                class="label mt-2 block"
-                                style="color: var(--status-danger)"
-                            >
-                                {reason}
-                            </span>
-                        }
-                    })}
 
                 // The needle: a tempo search is a sweep across the BPM range,
                 // and this is that at a speed a person can watch. Transform
                 // only, so it keeps moving whatever the main thread is doing.
-                <Show when=move || running>
-                    <span
-                        class="mt-3 block h-[2px] w-full overflow-hidden"
-                        style="background: var(--surface-sunken)"
-                    >
+                //
+                // Its track is always here and only the sweep comes and goes,
+                // so a row does not gain two pixels and a margin the moment it
+                // starts being measured.
+                <span
+                    class="mt-3 block h-[2px] w-full overflow-hidden"
+                    style=move || {
+                        if running {
+                            "background: var(--surface-sunken)"
+                        } else {
+                            "background: transparent"
+                        }
+                    }
+                >
+                    <Show when=move || running>
                         <span
                             class="animate-sweep block h-full w-1/3"
                             style="background: var(--accent-primary)"
                         />
-                    </span>
-                </Show>
+                    </Show>
+                </span>
             </td>
 
             <Show when=move || many.get()>
@@ -282,15 +311,13 @@ fn Row(
                                         60_000.0 / report.tempo.bpm.max(1.0),
                                     )
                                 />
-                                {report
-                                    .tempo_was_snapped()
-                                    .then(|| {
-                                        view! {
-                                            <span class="label mt-1 block">
-                                                {format!("measured {:.2}", report.tempo.bpm_measured)}
-                                            </span>
-                                        }
-                                    })}
+                                <span class="label mt-1 block">
+                                    {if report.tempo_was_snapped() {
+                                        format!("measured {:.2}", report.tempo.bpm_measured)
+                                    } else {
+                                        "\u{a0}".to_string()
+                                    }}
+                                </span>
                             </td>
                             <td class="figure px-5 py-4 text-right">
                                 <span class="text-[length:var(--text-body-lg)]">
@@ -306,6 +333,7 @@ fn Row(
                             </td>
                             <td class="figure px-5 py-4 text-right">
                                 {duration(report.source.duration_seconds)}
+                                <span class="label mt-1 block">"\u{a0}"</span>
                             </td>
                         </>
                     }
@@ -313,24 +341,12 @@ fn Row(
                 }
                 None => {
                     view! {
-                        <td class="px-5 py-4" colspan="4">
-                            {match failure {
-                                Some(why) => {
-                                    view! {
-                                        <span style="color: var(--status-danger)">{why}</span>
-                                    }
-                                        .into_any()
-                                }
-                                None => {
-                                    view! {
-                                        <span class="label">
-                                            {if running { "Measuring" } else { "Waiting" }}
-                                        </span>
-                                    }
-                                        .into_any()
-                                }
-                            }}
-                        </td>
+                        <>
+                            <Waiting />
+                            <Waiting />
+                            <Waiting />
+                            <Waiting />
+                        </>
                     }
                         .into_any()
                 }
@@ -356,6 +372,21 @@ fn Row(
                 }
             }
         </Show>
+    }
+}
+
+/// One measurement that has not arrived.
+///
+/// The same two lines the answer will occupy, so a row is the height it will
+/// always be from the moment it appears. The dot is there to be seen as a
+/// column that is waiting rather than a column that is empty.
+#[component]
+fn Waiting() -> impl IntoView {
+    view! {
+        <td class="figure px-5 py-4 text-right" style="color: var(--text-muted)">
+            <span class="text-[length:var(--text-body-lg)]">"·"</span>
+            <span class="label mt-1 block">"\u{a0}"</span>
+        </td>
     }
 }
 

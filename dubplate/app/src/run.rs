@@ -997,30 +997,34 @@ async fn append_archive(
     }
 
     let id = run.claim(name, Kind::Archive);
+
+    // Every row at once, waiting, before any of them is unpacked. The listing
+    // already says how many there are, so the table reaches its full height on
+    // the first paint and holds it: a list that grows a line at a time moves
+    // whatever somebody is reading further down the page each time it does.
+    let first = run.tracks.with_untracked(|tracks| tracks.len());
+    run.tracks.update(|tracks| {
+        tracks.extend(entries.iter().map(|entry| Track {
+            source: id,
+            name: entry.name.clone(),
+            export_name: None,
+            size: entry.size,
+            stage: Stage::Waiting,
+            figures: None,
+            included: true,
+            report_json: None,
+            audio: nothing_yet(),
+        }))
+    });
     run.phase.set(Phase::Analysing);
 
-    for entry in entries {
+    for (offset, entry) in entries.iter().enumerate() {
+        let slot = first + offset;
+
         // Before the extraction rather than after it, so a track is never
         // written to disk with nowhere to measure it.
         let permit = permits.take().await;
-
-        // The row goes up before the extraction and says so. A track inside a
-        // zip is decompressed before anything can measure it, and on a long WAV
-        // that is a second where the person is owed a line that moves.
-        let slot = run.tracks.with_untracked(|tracks| tracks.len());
-        run.tracks.update(|tracks| {
-            tracks.push(Track {
-                source: id,
-                name: entry.name.clone(),
-                export_name: None,
-                size: entry.size,
-                stage: Stage::Extracting,
-                figures: None,
-                included: true,
-                report_json: None,
-                audio: nothing_yet(),
-            })
-        });
+        run.set_stage(slot, Stage::Extracting);
 
         let extracted = pool
             .call_device(
