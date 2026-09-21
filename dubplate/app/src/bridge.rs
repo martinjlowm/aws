@@ -33,6 +33,12 @@ pub fn worker_count() -> usize {
 
 type Pending = Rc<RefCell<HashMap<u32, Box<dyn FnOnce(Result<JsValue, String>)>>>>;
 
+/// Where an unsolicited message goes.
+///
+/// A worker writing an image posts as it goes, so those arrive with no request
+/// id and answer nobody. They are handed here instead.
+type Watching = Rc<RefCell<Option<Box<dyn Fn(JsValue)>>>>;
+
 /// One worker and the requests it has not answered yet.
 struct Slot {
     worker: Worker,
@@ -55,6 +61,8 @@ struct Slot {
 pub struct Pool {
     /// The measurers. `analyze` fans out over these and nothing else does.
     slots: Vec<Slot>,
+    /// Told about progress a worker reports without being asked.
+    watching: Watching,
     /// The archive and the device under construction both live here.
     ///
     /// Its own worker rather than the first of the pool. Extraction feeds the
@@ -72,6 +80,7 @@ impl Pool {
     /// runs wasm at all supports them.
     pub fn new() -> Result<Rc<Pool>, JsValue> {
         let pending: Pending = Rc::new(RefCell::new(HashMap::new()));
+        let watching: Watching = Rc::new(RefCell::new(None));
         let mut slots = Vec::new();
 
         // One more than there are measurers: the extra holds the archive and
@@ -88,6 +97,7 @@ impl Pool {
             let queued: Rc<RefCell<Vec<JsValue>>> = Rc::new(RefCell::new(Vec::new()));
             let on_message = {
                 let pending = pending.clone();
+                let watching = watching.clone();
                 let outstanding = outstanding.clone();
                 let ready = ready.clone();
                 let queued = queued.clone();
@@ -102,6 +112,18 @@ impl Pool {
                         *ready.borrow_mut() = true;
                         for message in queued.borrow_mut().drain(..) {
                             let _ = worker.post_message(&message);
+                        }
+                        return;
+                    }
+
+                    // Progress, which nobody asked for and nothing is waiting
+                    // on. Handled before the bookkeeping below, because that
+                    // bookkeeping is about replies and this is not one: counted
+                    // as a reply it would report a request answered that is
+                    // still running.
+                    if get(&data, "progress").as_bool().unwrap_or(false) {
+                        if let Some(watcher) = watching.borrow().as_ref() {
+                            watcher(get(&data, "update"));
                         }
                         return;
                     }
@@ -166,9 +188,23 @@ impl Pool {
         Ok(Rc::new(Pool {
             slots,
             device,
+            watching,
             pending,
             next_id: RefCell::new(0),
         }))
+    }
+
+    /// Hear what a worker says while it is busy.
+    ///
+    /// One watcher at a time, because one thing at a time reports: the image
+    /// being written is the only work here long enough to be worth watching.
+    pub fn watch(&self, watcher: impl Fn(JsValue) + 'static) {
+        *self.watching.borrow_mut() = Some(Box::new(watcher));
+    }
+
+    /// Stop listening.
+    pub fn unwatch(&self) {
+        *self.watching.borrow_mut() = None;
     }
 
     /// How many tracks can be measured at once.

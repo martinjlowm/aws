@@ -225,6 +225,12 @@ pub struct Run {
     pub device: RwSignal<Device>,
     /// The track whose figures are open, by index.
     pub inspecting: RwSignal<Option<usize>>,
+    /// Bytes written into the image, against the bytes there are to write.
+    ///
+    /// Reported by the build itself rather than guessed from a clock. `None`
+    /// until the first update lands, which is the moment before which there is
+    /// genuinely nothing to draw.
+    pub writing: RwSignal<Option<(f64, f64)>>,
     /// The settings as the analysis module defaults them.
     ///
     /// Seeded from this crate's own copy so the form has something to draw
@@ -257,6 +263,7 @@ impl Run {
             analysis: RwSignal::new(Analysis::default()),
             device: RwSignal::new(Device::default()),
             inspecting: RwSignal::new(None),
+            writing: RwSignal::new(None),
             defaults: RwSignal::new(Analysis::default()),
             elapsed: RwSignal::new(0),
             formats: RwSignal::new(Vec::new()),
@@ -1336,6 +1343,16 @@ pub async fn build_image(run: Run, pool: Rc<Pool>) {
         run.phase.set(Phase::Building { gathered, total });
     }
 
+    // The build reports as it goes, and only while it goes.
+    run.writing.set(None);
+    pool.watch(move |update| {
+        let written = get(&update, "writtenBytes").as_f64().unwrap_or_default();
+        let total = get(&update, "totalBytes").as_f64().unwrap_or_default();
+        if total > 0.0 {
+            run.writing.set(Some((written, total)));
+        }
+    });
+
     let reply = pool
         .call_device(
             "device-image",
@@ -1347,6 +1364,8 @@ pub async fn build_image(run: Run, pool: Rc<Pool>) {
             ]),
         )
         .await;
+    pool.unwatch();
+    run.writing.set(None);
 
     match reply {
         Ok(reply) => {
@@ -1356,7 +1375,6 @@ pub async fn build_image(run: Run, pool: Rc<Pool>) {
             // worker logs to a console of its own, which is one expander deeper
             // than anybody looking for why a build took a minute will go.
             let milliseconds = get(&reply, "ms").as_f64().unwrap_or_default();
-            remember_rate(bytes as u64, milliseconds);
             web_sys::console::log_1(&JsValue::from_str(&format!(
                 "dubplate: wrote {} of filesystem in {:.0} ms, {:.0} MB/s",
                 human_bytes(bytes as u64),
@@ -1370,61 +1388,6 @@ pub async fn build_image(run: Run, pool: Rc<Pool>) {
         }
         Err(error) => run.phase.set(Phase::Failed(error)),
     }
-}
-
-/// How fast this machine last wrote a filesystem, in bytes per millisecond.
-///
-/// Nothing can report progress from inside the write: `Device::image` is one
-/// call, `image::build_into` drives its own iteration, and the file it writes
-/// into is grown to its full length before a byte goes in, so neither its size
-/// nor its contents say how far along it is. What is left is arithmetic, and
-/// arithmetic needs a rate.
-///
-/// The rate is measured rather than assumed, because the machines this runs on
-/// differ by more than any constant would survive: the same image took nine
-/// seconds in a release build and the better part of a minute in a debug one.
-/// Each build records what it managed and the next one predicts from it, so the
-/// first estimate on a machine is a guess and every one after it is that
-/// machine's own last answer.
-///
-/// Kept in local storage, which is per origin, so a page served from a laptop
-/// and one served from a bucket do not trade rates.
-const RATE_KEY: &str = "dubplate.write-rate";
-
-/// What to predict with before this machine has written anything.
-///
-/// A release build on one laptop, which is the only honest thing to seed with
-/// and is wrong on any other. One build replaces it.
-const ASSUMED_RATE: f64 = 28_600.0;
-
-fn storage() -> Option<web_sys::Storage> {
-    web_sys::window()?.local_storage().ok()?
-}
-
-/// Remember what a build managed, for the next one to predict from.
-fn remember_rate(bytes: u64, milliseconds: f64) {
-    if milliseconds <= 0.0 || bytes == 0 {
-        return;
-    }
-    let rate = bytes as f64 / milliseconds;
-    if let Some(storage) = storage() {
-        let _ = storage.set_item(RATE_KEY, &rate.to_string());
-    }
-}
-
-/// How long a filesystem of this size is likely to take, in seconds.
-///
-/// An estimate and nothing more, which is why the form says "about" in front of
-/// it. It is wrong the first time on any machine and close after that, and it
-/// is wrong again the moment somebody switches between a debug build and a
-/// release one.
-pub fn expected_seconds(bytes: u64) -> u32 {
-    let rate = storage()
-        .and_then(|storage| storage.get_item(RATE_KEY).ok().flatten())
-        .and_then(|stored| stored.parse::<f64>().ok())
-        .filter(|rate| *rate > 0.0)
-        .unwrap_or(ASSUMED_RATE);
-    (bytes as f64 / rate / 1000.0).ceil() as u32
 }
 
 /// Count the seconds a build has been running, for as long as it runs.

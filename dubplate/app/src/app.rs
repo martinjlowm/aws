@@ -8,8 +8,7 @@ use crate::components::settings::Settings;
 use crate::components::sources::Sources;
 use crate::components::tracks::Tracks;
 use crate::run::{
-    Phase, Run, append_all, build_image, expected_seconds, human_bytes, read_capabilities,
-    read_defaults,
+    Phase, Run, append_all, build_image, human_bytes, read_capabilities, read_defaults,
 };
 use leptos::prelude::*;
 use leptos_shadcn_ui::{
@@ -304,14 +303,39 @@ fn Download(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
                     Phase::Building { gathered, total } => {
                         view! {
                             <div class="flex items-center gap-4">
+                                // The bar the build fills. Before the first
+                                // update there is nothing to fill it with, so
+                                // it sweeps to say the work has started and
+                                // stops sweeping the moment it can say how far
+                                // along it is.
                                 <span
                                     class="block h-[3px] w-40 overflow-hidden"
                                     style="background: var(--surface-sunken)"
                                 >
-                                    <span
-                                        class="animate-sweep block h-full w-1/3"
-                                        style="background: var(--accent-primary)"
-                                    />
+                                    {move || match run.writing.get() {
+                                        Some((written, whole)) => {
+                                            let filled = (written / whole.max(1.0) * 100.0)
+                                                .clamp(0.0, 100.0);
+                                            view! {
+                                                <span
+                                                    class="block h-full"
+                                                    style=format!(
+                                                        "width: {filled:.1}%; background: var(--accent-primary); transition: width var(--duration-fast) var(--ease-standard)",
+                                                    )
+                                                />
+                                            }
+                                                .into_any()
+                                        }
+                                        None => {
+                                            view! {
+                                                <span
+                                                    class="animate-sweep block h-full w-1/3"
+                                                    style="background: var(--accent-primary)"
+                                                />
+                                            }
+                                                .into_any()
+                                        }
+                                    }}
                                 </span>
                                 <span class="label">
                                     {move || {
@@ -319,24 +343,25 @@ fn Download(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
                                         let seconds = run.elapsed.get();
                                         if gathered < total {
                                             format!("Collecting {gathered} of {total}")
+                                        } else if let Some((written, whole)) = run.writing.get() {
+                                            // A share rather than the two byte
+                                            // counts behind it. The build
+                                            // measures itself against the
+                                            // payload, which is smaller than
+                                            // the image by the slack nothing
+                                            // writes, and a line reading
+                                            // "16 MB of 19 MB" under a card
+                                            // promising 134 MB invites a
+                                            // question with a long answer.
+                                            format!(
+                                                "Writing the filesystem, {:.0}%, {seconds}s",
+                                                written / whole.max(1.0) * 100.0,
+                                            )
                                         } else if size > 0 {
-                                            // The expectation is dropped once it
-                                            // is overtaken. A number a person has
-                                            // already watched pass is worse than
-                                            // no number: it stops describing the
-                                            // wait and starts arguing with it.
-                                            let expected = expected_seconds(size);
-                                            if seconds < expected {
-                                                format!(
-                                                    "Writing {} of filesystem, {seconds}s of about {expected}s",
-                                                    human_bytes(size),
-                                                )
-                                            } else {
-                                                format!(
-                                                    "Writing {} of filesystem, {seconds}s",
-                                                    human_bytes(size),
-                                                )
-                                            }
+                                            format!(
+                                                "Writing {} of filesystem, {seconds}s",
+                                                human_bytes(size),
+                                            )
                                         } else {
                                             format!("Writing the filesystem, {seconds}s")
                                         }

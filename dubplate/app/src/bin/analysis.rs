@@ -266,6 +266,22 @@ impl Worker {
 
                 let scratch = Scratch::open("image.img").await?;
                 let started = now();
+
+                // The build blocks this worker from the first byte to the last,
+                // so the only way the page hears anything is if the callback
+                // posts it while the call is still running. A message posted
+                // from in here reaches the page, whose own loop is not blocked,
+                // and arrives while this one is still writing.
+                let forward = {
+                    let scope = self.scope.clone();
+                    Closure::<dyn FnMut(JsValue)>::new(move |update: JsValue| {
+                        let message = js_sys::Object::new();
+                        set(&message, "progress", JsValue::TRUE);
+                        set(&message, "update", update);
+                        let _ = scope.post_message(&message);
+                    })
+                };
+
                 let written = {
                     let mut state = self.state.borrow_mut();
                     let device = state
@@ -273,9 +289,18 @@ impl Worker {
                         .as_mut()
                         .ok_or("no device is being assembled")?;
                     device
-                        .image(scratch.handle(), &label, &playlist, &date, &target)
+                        .image(
+                            scratch.handle(),
+                            &label,
+                            &playlist,
+                            &date,
+                            &target,
+                            Some(forward.as_ref().unchecked_ref::<js_sys::Function>().clone()),
+                        )
                         .map_err(describe)
                 };
+                // Held until the call that uses it has returned.
+                drop(forward);
                 let file = scratch.finish().await?;
                 let written = written?;
                 let milliseconds = now() - started;
