@@ -33,9 +33,6 @@ pub struct Analysis {
     pub metrical_floor: f64,
     pub metrical_floor_ratio: f64,
     pub integer_snap: f64,
-    /// Whether a track's measured energy chooses a tempo prior for it.
-    pub energy_bands: bool,
-    pub tempo_prior_width: f64,
     pub key_profile: Profile,
     pub tuning_cents: Option<f64>,
 }
@@ -72,8 +69,6 @@ impl Default for Analysis {
             metrical_floor: 80.0,
             metrical_floor_ratio: 0.5,
             integer_snap: 0.25,
-            energy_bands: true,
-            tempo_prior_width: 0.7,
             key_profile: Profile::Temperley,
             tuning_cents: None,
         }

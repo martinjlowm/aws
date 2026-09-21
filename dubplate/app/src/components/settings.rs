@@ -274,8 +274,9 @@ pub fn Settings(
                     <TabsContent value="tempo">
                     <Group
                         title="Tempo"
-                        note="The search over that curve, and the two rules that decide which metrical \
-                              level the answer is reported at."
+                        note="The search over that curve, and the rules that decide which metrical \
+                              level the answer is reported at. Nothing here names or shapes a tempo: \
+                              what weights the candidates is measured from the track, not set."
                     >
                         <Number
                             label="Minimum BPM"
@@ -360,36 +361,6 @@ pub fn Settings(
                             value=Signal::derive(move || analysis.get().integer_snap)
                             set=Callback::new(move |next: f64| {
                                 analysis.update(|a| a.integer_snap = next)
-                            })
-                        />
-                        <Field
-                            label="Energy bands"
-                            note=Signal::derive(|| {
-                                "A track's own brightness, crest factor, onset density and \
-                                 high-frequency share choose a tempo prior for it. On, because a \
-                                 measurement is a better guess than a person's, and because none of \
-                                 the four reads anything the tempo stage produced: a track reported \
-                                 at twice its tempo cannot carry that error into the check meant to \
-                                 catch it. Turn it off to read the salience curve's own answer. A \
-                                 run that is given a prior says so in the track's findings."
-                                    .to_string()
-                            })
-                        >
-                            <Switch
-                                checked=Signal::derive(move || analysis.get().energy_bands)
-                                on_change=Callback::new(move |next: bool| {
-                                    analysis.update(|a| a.energy_bands = next)
-                                })
-                            />
-                        </Field>
-                        <Number
-                            label="Prior width"
-                            unit="octaves"
-                            note="Width of the prior the bands choose. Ignored while they are off."
-                            step=0.1
-                            value=Signal::derive(move || analysis.get().tempo_prior_width)
-                            set=Callback::new(move |next: f64| {
-                                analysis.update(|a| a.tempo_prior_width = next)
                             })
                         />
                     </Group>
