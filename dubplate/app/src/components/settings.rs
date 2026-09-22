@@ -13,8 +13,8 @@ use crate::components::section::SectionTitle;
 use crate::options::{Analysis, Device, Format, Profile, Target};
 use leptos::prelude::*;
 use leptos_shadcn_ui::{
-    Button, ButtonSize, ButtonVariant, Card, CardContent, Input, Label, Separator, Switch, Tabs,
-    TabsContent, TabsList, TabsTrigger,
+    Button, ButtonSize, ButtonVariant, Card, CardContent, CardDescription, Input, Label, Switch,
+    Tabs, TabsContent, TabsList, TabsTrigger,
 };
 
 #[component]
@@ -37,27 +37,58 @@ pub fn Settings(
 
     view! {
         <Card>
+            // The same header block the other cards have: one padded div, the
+            // heading and the paragraph under it as siblings. The padding is on
+            // the block rather than on the button, so what reads as a heading is
+            // laid out as one and its left edge is the paragraph's left edge.
+            //
             // The heading wraps the button rather than sitting inside it: a
-            // button holds phrasing content, and an h2 is not that. The pair is
-            // the accordion the rest of the page's cards are, so the eyebrow and
-            // the title come from the same component they do.
+            // button holds phrasing content, and an h2 is not that. What makes
+            // it a disclosure is `aria-expanded` on the button, which is the
+            // pair a reader is given: a heading to find, and a control on it.
+            <div class=move || {
+                // Closed, this block is the whole card and carries its bottom
+                // padding. Open, the panel below carries it instead.
+                if open.get() { "px-7 pt-7" } else { "px-7 pt-7 pb-7" }
+            }>
             <h2 class="section-heading">
                 <button
-                    class="flex w-full items-center justify-between px-7 pt-7 pb-7 text-left"
+                    class="flex w-full text-left"
                     aria-expanded=move || if open.get() { "true" } else { "false" }
                     on:click=move |_| open.update(|open| *open = !*open)
                 >
-                    <SectionTitle eyebrow="Step two, optional" title="Settings" />
-                    <span class="flex items-center gap-4">
-                        <span class="label">
-                            {move || {
+                    <SectionTitle eyebrow="Set before you drop" title="Settings">
+                        // A dot rather than the word it used to be. "Defaults"
+                        // sat beside the marker on the one control in the header
+                        // and read as a button that would restore them, which is
+                        // the button at the foot of the panel instead. All it
+                        // ever said was whether anything had been moved, and a
+                        // mark says that without offering to do anything.
+                        //
+                        // Its place is held when there is nothing to mark, so
+                        // the marker beside it does not shift along the header
+                        // the first time a number is changed.
+                        <span
+                            class="block h-[7px] w-[7px] rounded-full"
+                            style=move || {
                                 if analysis.get() == defaults.get() {
-                                    "Defaults".to_string()
+                                    "background: transparent"
                                 } else {
-                                    "Changed".to_string()
+                                    "background: var(--accent-primary)"
                                 }
-                            }}
-                        </span>
+                            }
+                            title=move || {
+                                if analysis.get() == defaults.get() {
+                                    ""
+                                } else {
+                                    "Changed from the defaults"
+                                }
+                            }
+                        />
+                        // The same, for a reader who cannot see the dot.
+                        <Show when=move || analysis.get() != defaults.get()>
+                            <span class="sr-only">"Changed from the defaults"</span>
+                        </Show>
                         <span
                             class="figure text-[length:var(--text-body-lg)] transition-transform"
                             style=move || {
@@ -66,16 +97,42 @@ pub fn Settings(
                         >
                             "+"
                         </span>
-                    </span>
+                    </SectionTitle>
                 </button>
             </h2>
 
+            // When each half of this is read, which is the one thing about the
+            // form that a person cannot see by looking at it. A run reads the
+            // measurement settings once, as the tracks are dropped, so a number
+            // changed afterwards reaches the next drop and nothing already in
+            // the table.
+            //
+            // Under the heading rather than inside the panel, so it is the
+            // paragraph of this card the way the other cards have one, and shown
+            // with the panel, because collapsed means collapsed.
+            <Show when=move || open.get()>
+                <CardDescription class="mt-3 max-w-prose text-[length:var(--text-body-sm)] leading-[var(--leading-body-tight)]">
+                    "Read as a track is dropped, so a change reaches the next drop and not the rows
+                     already measured. Remove a source and drop it again to measure it afresh.
+                     Device is the exception, read when the image is built."
+                </CardDescription>
+            </Show>
+            </div>
+
             <Show when=move || open.get()>
                 <div class="animate-rise">
-                    <Separator />
                     <CardContent class="px-7 pt-7 pb-7">
+
                     <Tabs default_value="device">
-                        <TabsList>
+                        // One row of five, which is what the 480px rail is
+                        // that wide for: the triggers measure 352px together
+                        // and the rail hands the card 360. Narrower than the
+                        // rail the list wraps instead, because a phone has no
+                        // 352px to give and a row that overflows is a row with
+                        // Cues off the edge of the card. `h-auto` beats the
+                        // component's own `h-10` on the strength of Tailwind
+                        // emitting it later, and the variant beats both.
+                        <TabsList class="h-auto flex-wrap justify-start gap-1 2xl:h-10 2xl:flex-nowrap">
                             <TabsTrigger value="device">"Device"</TabsTrigger>
                             <TabsTrigger value="transform">"Transform"</TabsTrigger>
                             <TabsTrigger value="tempo">"Tempo"</TabsTrigger>
@@ -192,7 +249,9 @@ pub fn Settings(
                             label="Figures"
                             note=Signal::derive(|| {
                                 "Draw the seven plots per track. Roughly doubles the time a run takes, \
-                                 and they are what turns an answer into something you can argue with."
+                                 and they are what turns an answer into something you can argue with. \
+                                 Read as a track is dropped rather than when the image is built, \
+                                 which is the one thing on this tab that is."
                                     .to_string()
                             })
                         >
@@ -485,15 +544,15 @@ pub fn Settings(
                     </TabsContent>
                     </Tabs>
 
-                    <Separator class="my-7" />
-
                     <Button
                         variant=ButtonVariant::Ghost
                         size=ButtonSize::Sm
-                        class="label"
+                        class="label mt-6"
                         on_click=Callback::new(move |()| analysis.set(defaults.get()))
                     >
-                        "Reset to the defaults the CLI prints"
+                        // Short enough for the rail: at the label size the
+                        // longer sentence this was ran out past the card.
+                        "Reset to the CLI defaults"
                     </Button>
                     </CardContent>
                 </div>
@@ -522,15 +581,17 @@ fn offered(formats: Signal<Vec<String>>) -> Vec<Format> {
 #[component]
 fn Group(title: &'static str, note: &'static str, children: Children) -> impl IntoView {
     view! {
-        <div class="pt-7">
-            <h3 class="text-[length:var(--text-body-xl)]">{title}</h3>
+        <div class="pt-6">
+            <h3 class="text-[length:var(--text-body-lg)]">{title}</h3>
             <p
-                class="mt-2 max-w-prose text-[length:var(--text-body-sm)]"
-                style="color: var(--text-secondary)"
+                class="mt-1 max-w-prose text-[length:var(--text-body-sm)]"
+                style="color: var(--text-secondary); line-height: var(--leading-body-tight)"
             >
                 {note}
             </p>
-            <div class="mt-6 grid gap-6 md:grid-cols-2">{children()}</div>
+            // Two fields abreast while this card has the page width, one once
+            // it is in the rail.
+            <div class="mt-4 grid gap-4 md:grid-cols-2 2xl:grid-cols-1">{children()}</div>
         </div>
     }
 }
@@ -544,9 +605,9 @@ fn Field(
     view! {
         <div>
             <Label class="label">{label}</Label>
-            <div class="mt-2 flex min-h-10 items-center">{children()}</div>
+            <div class="mt-1 flex min-h-9 items-center">{children()}</div>
             <p
-                class="mt-2 text-[length:var(--text-body-sm)]"
+                class="mt-1 text-[length:var(--text-body-sm)]"
                 style="color: var(--text-muted); line-height: var(--leading-body-tight)"
             >
                 {move || note.get()}
@@ -602,7 +663,9 @@ fn Number(
                         }
                     })
                 />
-                <span class="label whitespace-nowrap">{unit}</span>
+                // Only where there is one. A field with no unit was rendering
+                // an empty span of its own.
+                {(!unit.is_empty()).then(|| view! { <span class="label whitespace-nowrap">{unit}</span> })}
             </div>
         </Field>
     }
@@ -645,7 +708,9 @@ fn Optional(
                         }
                     })
                 />
-                <span class="label whitespace-nowrap">{unit}</span>
+                // Only where there is one. A field with no unit was rendering
+                // an empty span of its own.
+                {(!unit.is_empty()).then(|| view! { <span class="label whitespace-nowrap">{unit}</span> })}
             </div>
         </Field>
     }

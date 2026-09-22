@@ -2,18 +2,19 @@
 
 use crate::bridge::Pool;
 use crate::components::charts::{CamelotWheel, TempoKeyPlot};
-use crate::components::drop_zone::DropZone;
+use crate::components::drop_zone::{DragVeil, DropZone, watch_window_drops};
 use crate::components::section::SectionHeading;
 use crate::components::settings::Settings;
 use crate::components::sources::Sources;
 use crate::components::tracks::Tracks;
+use crate::options::Device;
 use crate::run::{
     Phase, Run, append_all, build_image, human_bytes, read_capabilities, read_defaults,
 };
+use crate::store;
 use leptos::prelude::*;
 use leptos_shadcn_ui::{
-    Badge, BadgeVariant, Button, ButtonSize, Card, CardContent, CardDescription, CardHeader,
-    Progress,
+    Badge, BadgeVariant, Button, ButtonSize, Card, CardContent, CardDescription, Progress,
 };
 
 #[component]
@@ -26,6 +27,16 @@ pub fn App() -> impl IntoView {
     // never leaves this thread. There is only ever one thread here anyway.
     let pool = StoredValue::new_local(Pool::new().ok());
     let started = pool.with_value(|pool| pool.is_some());
+
+    // What the form was left at last visit, read before the worker is asked
+    // anything so the first paint is already somebody's own numbers rather than
+    // a set of defaults that flick over to them a moment later.
+    if let Some(analysis) = store::load(store::ANALYSIS) {
+        run.analysis.set(analysis);
+    }
+    if let Some(device) = store::load(store::DEVICE) {
+        run.device.set(device);
+    }
 
     // What this build can write is asked once, before anything is dropped, so
     // the settings form is right the first time it is opened.
@@ -41,6 +52,30 @@ pub fn App() -> impl IntoView {
     Effect::new(move |_| {
         run.device.track();
         run.invalidate();
+    });
+
+    // Kept for the next visit, and only what differs from the defaults. A form
+    // back at the defaults stores nothing, which is what the reset button at the
+    // foot of the panel does and why it needs no storage of its own.
+    Effect::new(move |_| {
+        let analysis = run.analysis.get();
+        if !run.defaults_seen.get() {
+            return;
+        }
+        if analysis == run.defaults.get() {
+            store::forget(store::ANALYSIS);
+        } else {
+            store::save(store::ANALYSIS, &analysis);
+        }
+    });
+
+    Effect::new(move |_| {
+        let device = run.device.get();
+        if device == Device::default() {
+            store::forget(store::DEVICE);
+        } else {
+            store::save(store::DEVICE, &device);
+        }
     });
 
     let busy = Signal::derive(move || {
@@ -64,8 +99,28 @@ pub fn App() -> impl IntoView {
         leptos::task::spawn_local(build_image(run, pool));
     });
 
+    // The window is the drop target, so this is installed once for the page
+    // rather than once per card. What it hands back is whether a file is
+    // currently overhead, which is what the veil and the card are drawn from.
+    let dragging = watch_window_drops(on_files, busy);
+
     view! {
-        <div class="mx-auto w-full max-w-[var(--container-lg)] px-6 py-12 md:px-10 md:py-16">
+        // Two shapes, and the breakpoint between them is where the third column
+        // stops fitting. Below 1536px this is a page: it is as tall as what is
+        // on it, the window scrolls, and the sections follow one another down in
+        // the order the work happens. At 1536 and up it is an application: the
+        // window is the frame, the header stays on it, and each of the three
+        // columns scrolls inside its own height.
+        //
+        // 1536 rather than 1280, because the settings rail is 480px wide: the
+        // five tabs sit on one line at that width and not at any less, and two
+        // rails of it leave a table worth reading only once the window is this
+        // wide.
+        //
+        // The page half is the one a phone gets, and it is the original: a
+        // column of cards at a readable measure, which is what a narrow screen
+        // can show and what a thumb can scroll.
+        <div class="mx-auto flex w-full max-w-[var(--container-lg)] flex-col px-6 py-12 md:px-10 md:py-16 2xl:h-full 2xl:max-w-none 2xl:px-0 2xl:py-0">
             <Header />
 
             <Show
@@ -88,86 +143,156 @@ pub fn App() -> impl IntoView {
                     }
                 }
             >
-                <main class="mt-12 space-y-8">
-                    <DropZone
-                        on_files=on_files
-                        busy=busy
-                        appending=Signal::derive(move || !run.sources.get().is_empty())
-                    />
+                <DragVeil dragging=dragging />
 
-                    <Show when=move || { !run.sources.get().is_empty() }>
-                        <Sources run=run busy=busy />
-                    </Show>
+                // All three columns are here from the first paint, whether or
+                // not they have anything in them yet, so the run in the middle
+                // is laid out once: an image finishing is a column filling and
+                // never the table beside it narrowing under the pointer.
+                //
+                // Written in the order they are read in, which is also the order
+                // they are used in: the settings decide what a drop measures, so
+                // they come before the drop on a page and to the left of it in
+                // the application. Nothing here is reordered by CSS, so what a
+                // keyboard walks through is what the eye walks through.
+                <main class="mt-12 grid items-start gap-8 2xl:mt-0 2xl:min-h-0 2xl:flex-1 2xl:grid-cols-[480px_minmax(0,1fr)_480px] 2xl:items-stretch 2xl:gap-0">
+                    <aside
+                        class="2xl:col-start-1 2xl:row-start-1 2xl:flex 2xl:h-full 2xl:min-h-0 2xl:flex-col 2xl:gap-6 2xl:overflow-y-auto 2xl:border-r 2xl:p-8"
+                        style="border-color: var(--border-subtle)"
+                    >
+                        <Settings
+                            analysis=run.analysis
+                            defaults=Signal::derive(move || run.defaults.get())
+                            device=run.device
+                            formats=Signal::derive(move || run.formats.get())
+                        />
+                    </aside>
 
-                    <Settings
-                        analysis=run.analysis
-                        defaults=Signal::derive(move || run.defaults.get())
-                        device=run.device
-                        formats=Signal::derive(move || run.formats.get())
-                    />
+                    <div class="space-y-8 2xl:col-start-2 2xl:row-start-1 2xl:h-full 2xl:min-h-0 2xl:space-y-6 2xl:overflow-y-auto 2xl:p-8">
+                        <DropZone
+                            on_files=on_files
+                            busy=busy
+                            dragging=dragging
+                            appending=Signal::derive(move || !run.sources.get().is_empty())
+                        />
 
-                    <Show when=move || { !run.tracks.with(|tracks| tracks.is_empty()) }>
-                        <Runway run=run />
-                        <Tracks run=run />
-                    </Show>
+                        <Show when=move || { !run.sources.get().is_empty() }>
+                            <Sources run=run busy=busy />
+                        </Show>
 
-                    <Show when=move || { run.measured() > 1 }>
-                        <Collection run=run />
-                    </Show>
+                        <Show when=move || { !run.tracks.with(|tracks| tracks.is_empty()) }>
+                            <Runway run=run />
+                            <Tracks run=run />
+                        </Show>
 
-                    <Show when=move || {
-                        matches!(
-                            run.phase.get(),
-                            Phase::Measured | Phase::Building { .. } | Phase::Ready { .. },
-                        ) && run.measured() > 0
-                    }>
-                        <Download run=run on_build=on_build />
-                    </Show>
-
-                    {move || match run.phase.get() {
-                        Phase::Failed(why) => {
-                            view! {
-                                <Card>
-                                    <CardContent class="px-7 pt-6 pb-6">
-                                        <p style="color: var(--status-danger)">{why}</p>
-                                    </CardContent>
-                                </Card>
+                        {move || match run.phase.get() {
+                            Phase::Failed(why) => {
+                                view! {
+                                    <Card>
+                                        <CardContent class="px-7 pt-6 pb-6">
+                                            <p style="color: var(--status-danger)">{why}</p>
+                                        </CardContent>
+                                    </Card>
+                                }
+                                    .into_any()
                             }
-                                .into_any()
-                        }
-                        _ => ().into_any(),
-                    }}
+                            _ => ().into_any(),
+                        }}
+                    </div>
+
+                    // The rails carry the border between the columns rather
+                    // than a gap, because a gap wide enough to separate them at
+                    // this width is a stripe of page down the middle of an
+                    // application.
+                    <aside
+                        class="flex flex-col gap-8 2xl:col-start-3 2xl:row-start-1 2xl:h-full 2xl:min-h-0 2xl:gap-6 2xl:overflow-y-auto 2xl:border-l 2xl:p-8"
+                        style="border-color: var(--border-subtle)"
+                    >
+                        <Results run=run on_build=on_build />
+
+                        // The colophon, in the corner the work ends in. It sits
+                        // under the image and the collection because it is about
+                        // where the numbers above it come from, and it is the
+                        // last thing on the page for the same reason.
+                        //
+                        // `mt-auto` is what holds it against the bottom, which
+                        // is why this column is a flex column with a gap rather
+                        // than `space-y`: that sets a top margin on every child
+                        // but the first, through a selector that beats it.
+                        <Colophon class="mt-auto hidden 2xl:block" />
+                    </aside>
+
                 </main>
             </Show>
 
-            <Footer />
+            <Colophon class="mt-16 border-t pt-8 2xl:hidden" />
         </div>
     }
 }
 
+/// The title, and nothing else.
+///
+/// What this is used to be said here and is said on the drop target instead,
+/// which is where somebody who has not dropped anything is looking. What is
+/// left is a name: a line on a page, and the bar across the top of the
+/// application, where every pixel it does not take is one the three columns
+/// get.
 #[component]
 fn Header() -> impl IntoView {
     view! {
-        <header>
-            <h1 class="text-[length:var(--text-display-md)]">"Dubplate"</h1>
-            <p
-                class="mt-4 text-[length:var(--text-body-lg)]"
-                style="color: var(--text-secondary)"
-            >
-                "Drop in the zips from your orders. Every track comes back with its BPM and
-                 its key, renamed so the stick sorts itself by tempo, and the whole lot
-                 writes to a USB a Pioneer CDJ or a Denon player reads the moment you plug
-                 it in."
-            </p>
-            <p
-                class="mt-3 text-[length:var(--text-body-md)]"
-                style="color: var(--text-muted)"
-            >
-                "Both libraries go on the same stick, rekordbox for the Pioneers and Engine
-                 DJ for the Denons, so it works on whatever is in the booth. Nothing is
-                 uploaded. Every track is measured here, in this tab."
-            </p>
+        <header
+            class="flex shrink-0 items-center justify-between gap-6 2xl:border-b 2xl:px-8 2xl:py-5"
+            style="border-color: var(--border-subtle)"
+        >
+            <h1 class="text-[length:var(--text-display-md)] 2xl:text-[length:var(--text-display-sm)]">
+                "Dubplate"
+            </h1>
+            <Source />
         </header>
+    }
+}
+
+/// Where the code is.
+///
+/// The mark and nothing else. A page that measures a track and writes a
+/// filesystem in the tab it is read in invites the question of what it is doing,
+/// and the answer that settles it is the source.
+#[component]
+fn Source() -> impl IntoView {
+    view! {
+        <a
+            class="shrink-0 transition-colors"
+            style="color: var(--text-muted)"
+            href="https://github.com/martinjlowm/dubplate"
+            target="_blank"
+            rel="noreferrer"
+            title="Dubplate on GitHub"
+            aria-label="Dubplate on GitHub"
+            on:mouseenter=move |event| set_colour(&event, "var(--text-primary)")
+            on:mouseleave=move |event| set_colour(&event, "var(--text-muted)")
+        >
+            <svg
+                viewBox="0 0 16 16"
+                width="22"
+                height="22"
+                fill="currentColor"
+                aria-hidden="true"
+                class="block"
+            >
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+        </a>
+    }
+}
+
+/// The hover, set on the element rather than through a class: the colour is a
+/// token and Tailwind's hover variants are written against its own palette.
+fn set_colour(event: &leptos::ev::MouseEvent, colour: &str) {
+    use wasm_bindgen::JsCast;
+    if let Some(target) = event.current_target() {
+        if let Ok(element) = target.dyn_into::<web_sys::HtmlElement>() {
+            let _ = element.style().set_property("color", colour);
+        }
     }
 }
 
@@ -182,7 +307,7 @@ fn Runway(run: Run) -> impl IntoView {
             // A header and a body, which is the pairing CardContent is built
             // for: its own class is `p-6 pt-0`, so used alone it has no top
             // padding at all and the first line sits against the card's edge.
-            <CardHeader class="px-7 pt-7 pb-0">
+            <div class="px-7 pt-7">
                 <div class="flex items-baseline justify-between gap-6">
                     <span class="label">
                         {move || match run.phase.get() {
@@ -200,7 +325,7 @@ fn Runway(run: Run) -> impl IntoView {
                         }}
                     </span>
                 </div>
-            </CardHeader>
+            </div>
 
             <CardContent class="px-7 pb-6">
                 <div class="mt-4">
@@ -239,21 +364,72 @@ fn Runway(run: Run) -> impl IntoView {
     }
 }
 
+/// The right-hand rail: what the run came to, and the image built from it.
+///
+/// The export leads and the collection follows, rather than the other way
+/// round. Both arrive as tracks are measured, and the one that arrives second is
+/// the wheel: under the export it grows downwards into empty column, and above
+/// it, it would push the button a person is reaching for out from under their
+/// pointer.
+#[component]
+fn Results(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
+    let exporting = Signal::derive(move || {
+        matches!(
+            run.phase.get(),
+            Phase::Measured | Phase::Building { .. } | Phase::Ready { .. },
+        ) && run.measured() > 0
+    });
+
+    view! {
+        <Show when=move || exporting.get() fallback=|| view! { <Awaiting /> }>
+            <Download run=run on_build=on_build />
+        </Show>
+
+        <Show when=move || { run.measured() > 1 }>
+            <Collection run=run />
+        </Show>
+    }
+}
+
+/// The rail before there is anything to put in it.
+///
+/// Here so the column is not an empty stripe down the side of a page that has
+/// not been used yet, and so the two things that land here are announced before
+/// they do.
+#[component]
+fn Awaiting() -> impl IntoView {
+    view! {
+        <Card>
+            <div class="px-7 pt-7 pb-7">
+                <SectionHeading eyebrow="The image" title="Cut the image" />
+                <CardDescription class="mt-3 max-w-prose text-[length:var(--text-body-md)]">
+                    "The image the ticked tracks are written to is built from here, and under it
+                     the tempos and keys you have dropped are drawn as they are measured. Both
+                     wait on the first answer."
+                </CardDescription>
+            </div>
+        </Card>
+    }
+}
+
 #[component]
 fn Collection(run: Run) -> impl IntoView {
     let reports = Signal::derive(move || run.reports());
     view! {
         <Card>
-            <CardHeader class="px-7 pt-7">
+            <div class="px-7 pt-7 pb-6">
                 <SectionHeading eyebrow="The collection" title="What you have dropped" />
                 <CardDescription class="mt-3 max-w-prose text-[length:var(--text-body-md)]">
                     "Tempo and key are what a set is built from, so they are what the collection
                      is drawn as. Neighbours on the wheel mix; a cluster on the left is an hour
                      that holds together."
                 </CardDescription>
-            </CardHeader>
+            </div>
             <CardContent class="px-7 pb-7">
-                <div class="mt-4 grid gap-10 lg:grid-cols-[2fr_1fr] lg:items-center">
+                // Side by side while this card has the page's width, stacked
+                // once it is in the rail: two figures in 360px are two
+                // thumbnails.
+                <div class="mt-4 grid gap-10 lg:grid-cols-[2fr_1fr] lg:items-center 2xl:grid-cols-1 2xl:items-stretch">
                     <TempoKeyPlot reports=reports />
                     <CamelotWheel reports=reports />
                 </div>
@@ -266,20 +442,32 @@ fn Collection(run: Run) -> impl IntoView {
 fn Download(run: Run, #[prop(into)] on_build: Callback<()>) -> impl IntoView {
     view! {
         <Card>
-            <CardHeader class="px-7 pt-7">
-                <SectionHeading eyebrow="Step three" title="Cut the image" />
+            <div class="px-7 pt-7 pb-6">
+                <SectionHeading eyebrow="The image" title="Cut the image" />
                 <CardDescription class="mt-3 max-w-prose text-[length:var(--text-body-md)]">
                     "One FAT32 filesystem holding the audio named after what was measured in it,
                      and the databases a player browses it through. Write it to a stick with dd,
                      and read the disk number twice."
                 </CardDescription>
                 <CardDescription class="mt-2 max-w-prose text-[length:var(--text-body-sm)]">
+                    "A stick already partitioned FAT32 does not need dd. Mount the image and copy
+                     everything at its root to the root of the stick, since both databases store
+                     their paths from the device root. The stick keeps its own volume name, which
+                     is the one a player shows in its source list."
+                </CardDescription>
+                <CardDescription class="mt-2 max-w-prose text-[length:var(--text-body-sm)]">
                     "Only the ticked tracks are written. Each one is already a file of its own, so
                      nothing is unpacked twice and a track left off costs nothing."
                 </CardDescription>
-            </CardHeader>
+            </div>
 
-            <CardContent class="px-7 pb-7">
+            // One slot, given its height before anything is in it. What sits
+            // here is an estimate and a button, then a progress line, then a
+            // link, and the three are not the same size: measured as they come,
+            // the card would shrink when a build starts and grow when it
+            // finishes, and the collection under it would step up and down the
+            // rail each time.
+            <CardContent class="export-slot px-7 pb-7">
                 {move || match run.phase.get() {
                     Phase::Ready { url, bytes } => {
                         view! {
@@ -444,14 +632,20 @@ fn SizeEstimate(run: Run) -> impl IntoView {
     }
 }
 
+/// Where the analysis comes from.
+///
+/// Placed twice rather than moved, because the two shapes want it in two places:
+/// last on the page, and at the foot of the settings rail in the application,
+/// where it sits under everything else nobody needs while they are working. The
+/// trimmings differ and the sentence does not, so the sentence is here once.
 #[component]
-fn Footer() -> impl IntoView {
+fn Colophon(#[prop(into)] class: String) -> impl IntoView {
     view! {
         <footer
-            class="mt-16 border-t pt-8 text-[length:var(--text-body-sm)]"
+            class=format!("text-[length:var(--text-body-sm)] {class}")
             style="border-color: var(--border-subtle); color: var(--text-muted)"
         >
-            <p>
+            <p class="max-w-prose">
                 "The analysis here is dubplate's own, compiled to WebAssembly from the crates the
                  command-line tool links. The same file measures the same way in both, which is
                  the only reason a page is worth having."

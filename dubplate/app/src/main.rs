@@ -11,6 +11,7 @@ mod components;
 mod options;
 mod report;
 mod run;
+mod store;
 
 mod app;
 

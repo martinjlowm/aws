@@ -90,7 +90,13 @@ impl Default for Analysis {
 }
 
 /// What goes on the stick, as opposed to what is measured.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// Serialised to be kept between visits, which is the only thing that reads it
+/// back: the worker is handed these field by field. `default` on the container
+/// rather than on the fields, so a value stored by a version with one field
+/// fewer loads with the rest at their defaults instead of being thrown away.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct Device {
     /// Volume name, which is what a player shows in its source list. FAT32
     /// allows eleven characters.
@@ -113,7 +119,8 @@ pub struct Device {
 /// and whether a build can perform one is a property of the analysis module it
 /// links rather than of this form: the page asks the worker which formats it can
 /// write and draws the rest disabled.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Format {
     Source,
     Wav,
@@ -189,7 +196,8 @@ impl Format {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Target {
     Rekordbox,
     Engine,

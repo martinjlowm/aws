@@ -238,6 +238,13 @@ pub struct Run {
     /// reports. What "Defaults" means in the form, and what the reset button
     /// resets to, is this rather than the copy.
     pub defaults: RwSignal<Analysis>,
+    /// Whether the module has answered with them yet.
+    ///
+    /// What is kept between visits is the difference from these, so there is
+    /// nothing to keep until they are known: written before the answer lands, a
+    /// form at the module's defaults would be measured against this crate's copy
+    /// of them and stored as though somebody had chosen it.
+    pub defaults_seen: RwSignal<bool>,
     /// Seconds since the image started being written.
     ///
     /// Writing a filesystem is one call into the analysis module and it reports
@@ -265,6 +272,7 @@ impl Run {
             inspecting: RwSignal::new(None),
             writing: RwSignal::new(None),
             defaults: RwSignal::new(Analysis::default()),
+            defaults_seen: RwSignal::new(false),
             elapsed: RwSignal::new(0),
             formats: RwSignal::new(Vec::new()),
             next_source: RwSignal::new(0),
@@ -893,7 +901,14 @@ pub async fn read_defaults(run: Run, pool: Rc<Pool>) {
     };
     if let Ok(defaults) = serde_wasm_bindgen::from_value::<Analysis>(reply) {
         run.defaults.set(defaults.clone());
-        run.analysis.set(defaults);
+        // A setting kept from a previous visit is somebody's own and outranks
+        // the module's default. With nothing kept, the module's is what the form
+        // should show, which is the round trip this call exists for.
+        if crate::store::load::<Analysis>(crate::store::ANALYSIS).is_none() {
+            run.analysis.set(defaults);
+        }
+        // Last, so that what is kept is decided against the real defaults.
+        run.defaults_seen.set(true);
     }
 }
 

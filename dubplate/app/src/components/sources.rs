@@ -13,15 +13,15 @@
 use crate::components::section::SectionHeading;
 use crate::run::{Kind, Run, Standing};
 use leptos::prelude::*;
-use leptos_shadcn_ui::{Button, ButtonSize, ButtonVariant, Card, CardContent, CardHeader};
+use leptos_shadcn_ui::{Button, ButtonSize, ButtonVariant, Card, CardContent};
 
 #[component]
 pub fn Sources(run: Run, #[prop(into)] busy: Signal<bool>) -> impl IntoView {
     view! {
         <Card>
-            <CardHeader class="px-7 pt-7 pb-0">
+            <div class="px-7 pt-7">
                 <SectionHeading eyebrow="The sources" title="What this image is made of" />
-            </CardHeader>
+            </div>
 
             <CardContent class="px-7 pt-5 pb-6">
                 <ul class="space-y-3">

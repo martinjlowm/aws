@@ -18,8 +18,13 @@ use std::sync::Arc;
 /// it, and a cluster is a set.
 #[component]
 pub fn TempoKeyPlot(reports: Signal<Vec<Arc<Report>>>) -> impl IntoView {
-    const WIDTH: f64 = 720.0;
-    const HEIGHT: f64 = 300.0;
+    // Close to the width this is drawn at rather than a wide strip. An SVG
+    // scales its text with everything else, so a 720-unit box in a 360px column
+    // halves every label: what was set at 9 arrives at four and a half pixels.
+    // At these numbers the box is drawn near its own size in the rail, and the
+    // cap on the class below keeps it near its own size on a page as well.
+    const WIDTH: f64 = 420.0;
+    const HEIGHT: f64 = 330.0;
     const LEFT: f64 = 44.0;
     const BOTTOM: f64 = 28.0;
     const TOP: f64 = 12.0;
@@ -98,7 +103,7 @@ pub fn TempoKeyPlot(reports: Signal<Vec<Arc<Report>>>) -> impl IntoView {
         <figure class="m-0">
             <svg
                 viewBox=format!("0 0 {WIDTH} {HEIGHT}")
-                class="w-full h-auto"
+                class="mx-auto h-auto w-full max-w-[560px]"
                 role="img"
                 aria-label="Tempo against Camelot key, one marker per track"
             >
@@ -121,7 +126,7 @@ pub fn TempoKeyPlot(reports: Signal<Vec<Arc<Report>>>) -> impl IntoView {
                                 y=y + 3.0
                                 text-anchor="end"
                                 class="figure"
-                                font-size="9"
+                                font-size="12"
                                 fill="var(--text-muted)"
                             >
                                 {number.to_string()}
@@ -141,7 +146,7 @@ pub fn TempoKeyPlot(reports: Signal<Vec<Arc<Report>>>) -> impl IntoView {
                                     y=HEIGHT - 8.0
                                     text-anchor="middle"
                                     class="figure"
-                                    font-size="9"
+                                    font-size="12"
                                     fill="var(--text-muted)"
                                 >
                                     {label}
@@ -175,7 +180,7 @@ pub fn TempoKeyPlot(reports: Signal<Vec<Arc<Report>>>) -> impl IntoView {
                                 <circle
                                     cx=point.x
                                     cy=point.y
-                                    r="5"
+                                    r="6"
                                     fill=fill
                                     stroke=stroke
                                     stroke-width="1.5"
@@ -235,7 +240,7 @@ pub fn CamelotWheel(reports: Signal<Vec<Arc<Report>>>) -> impl IntoView {
         <figure class="m-0">
             <svg
                 viewBox=format!("0 0 {SIZE} {SIZE}")
-                class="w-full h-auto max-w-[300px] mx-auto"
+                class="mx-auto h-auto w-full max-w-[420px]"
                 role="img"
                 aria-label="Camelot wheel, shaded by how many tracks are in each key"
             >
@@ -289,7 +294,7 @@ pub fn CamelotWheel(reports: Signal<Vec<Arc<Report>>>) -> impl IntoView {
                                             y=centre + text_radius * middle.sin() + 3.0
                                             text-anchor="middle"
                                             class="figure"
-                                            font-size="9"
+                                            font-size="11"
                                             fill=move || {
                                                 if weight > 0.55 {
                                                     "var(--accent-primary-text)"

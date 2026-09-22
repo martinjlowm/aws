@@ -13,7 +13,7 @@
 use crate::report::{Report, Severity, format_bpm};
 use crate::run::{Figures, Run, Stage, Standing, Track, human_bytes};
 use leptos::prelude::*;
-use leptos_shadcn_ui::{Badge, BadgeVariant, Card, Separator};
+use leptos_shadcn_ui::{Badge, BadgeVariant, Card};
 use std::sync::Arc;
 
 #[component]
@@ -40,23 +40,41 @@ pub fn Tracks(run: Run) -> impl IntoView {
 
     view! {
         <Card class="overflow-hidden">
+            // Both lines hold their place from the first row, empty until there
+            // is something to say. Said only once a row can answer it, but
+            // arriving then as well would push the whole table down at the exact
+            // moment somebody is reading the first answer off it.
             <div class="flex flex-wrap items-baseline justify-between gap-4 px-5 pt-5">
-                // Said once, and only once a row can actually answer it: the
-                // marker in each row is what carries this afterwards.
-                <Show when=move || { run.measured() > 0 }>
-                    <p class="label">"Open a track for the evidence behind its answer"</p>
-                </Show>
+                // Said once: the marker in each row is what carries this
+                // afterwards.
+                <p class="label">
+                    {move || {
+                        if run.measured() > 0 {
+                            "Open a track for the evidence behind its answer"
+                        } else {
+                            "\u{a0}"
+                        }
+                    }}
+                </p>
 
-                <Show when=move || { run.measured() > 0 }>
-                    <p class="label">
-                        {move || format!("{} of {} on the image", run.selected(), run.measured())}
-                        {move || {
-                            let estimate = run.estimate();
-                            (estimate.total > 0)
-                                .then(|| format!(", about {}", human_bytes(estimate.total)))
-                        }}
-                    </p>
-                </Show>
+                <p class="label">
+                    {move || {
+                        if run.measured() == 0 {
+                            return "\u{a0}".to_string();
+                        }
+                        let counted = format!(
+                            "{} of {} on the image",
+                            run.selected(),
+                            run.measured(),
+                        );
+                        let estimate = run.estimate();
+                        if estimate.total > 0 {
+                            format!("{counted}, about {}", human_bytes(estimate.total))
+                        } else {
+                            counted
+                        }
+                    }}
+                </p>
             </div>
 
             <div class="overflow-x-auto pt-2">
@@ -570,13 +588,9 @@ fn Evidence(report: Arc<Report>, figures: Option<Arc<Figures>>) -> impl IntoView
             </div>
         </div>
 
-        {figures
-            .map(|figures| {
-                view! {
-                    <Separator class="my-8" />
-                    <Plots figures=figures />
-                }
-            })}
+        // `Plots` carries the space above it. What used to sit here was a
+        // `Separator`, which draws an empty div and no line.
+        {figures.map(|figures| view! { <Plots figures=figures /> })}
     }
 }
 

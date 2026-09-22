@@ -28,6 +28,25 @@
     color: var(--ink-900);
   }
 
+  /* An application from 1536px up, and a page below it.
+   *
+   * A page is as tall as what is on it and the window scrolls, which is the
+   * only thing a phone can do with a column of cards. Given the width for three
+   * columns, the window becomes the frame instead: the header stays on it, and
+   * each column scrolls inside its own height rather than dragging the other
+   * two along. The breakpoint is the one the grid changes at, because a frame
+   * with one column in it is a page that cannot scroll.
+   *
+   * The height is handed down from here: the application mounts as a child of
+   * body and takes its own from `h-full`, so these two are the whole chain. */
+  @media (min-width: 1536px) {
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+  }
+
   /* The display voice, everywhere a heading is a heading. */
   h1,
   h2,
@@ -78,6 +97,15 @@
     font-size: var(--text-display-sm);
   }
 
+  /* A control in the heading, level with the title rather than with the pair.
+   * It carries the title's own top margin, which is what makes centring it in
+   * that grid row land it on the title's line instead of half a margin below
+   * the middle of it. The two margins are the same margin and are written
+   * together for that reason. */
+  .section-control {
+    margin-top: var(--space-4);
+  }
+
   /* A row that opens. The marker is the same + that Settings rotates, so the
    * page has one disclosure and not two, and inside a table of measurements it
    * is the only thing that answers to a pointer. Rows still being measured keep
@@ -125,6 +153,16 @@
   .disclosure[aria-expanded="true"] .disclosure-marker {
     transform: rotate(45deg);
     color: var(--accent-primary);
+  }
+
+  /* The export card's body, which holds three different things over the life of
+   * a run: an estimate and a button, a progress line, then a link to the image.
+   * A floor rather than a fixed height, so a long estimate is not clipped, and
+   * enough of one that the usual three all clear it. The card is then one height
+   * from the first measurement to the download, and the collection beneath it in
+   * the rail stays where it was put. */
+  .export-slot {
+    min-height: 12rem;
   }
 
   /* A hairline box, which is what this identity reaches for before a shadow. */
