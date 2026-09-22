@@ -20,7 +20,7 @@ members = ["dubplate/app"]
 #
 #   dubplate-wasm = { path = "../music-analyze/tools/rust/dubplate-wasm" }
 [workspace.dependencies]
-dubplate-wasm = { git = "https://github.com/martinjlowm/dubplate", rev = "32ee7e2bd51ab4d11f5ceede1b683b330443dacd" }
+dubplate-wasm = { git = "https://github.com/martinjlowm/dubplate", rev = "74c7320110a7f8af867576f62e291d47a7c8f62d" }
 
 [workspace.package]
 version = "0.1.0"
