@@ -4,21 +4,47 @@
   programs.alejandra.enable = true; # devenv.nix, music/nix/default.nix
   programs.shfmt.enable = true; # .envrc
 
-  # biome, for .ts/.json. `format` rather than the module's default `check`:
-  # linting stays with `yarn lint`, so a formatter run can never rewrite code
-  # on a lint rule, while both read the SAME configuration (./biome-config.nix,
-  # see there for how biome.json is generated from it).
+  # biome formats and lints .ts/.json; treefmt hands it this configuration from
+  # the store with --config-path, so the settings exist only here. The module
+  # runs `biome check --write`, which is the lint pass as well as the formatter.
+  # treefmt walks the git index and skips ignored paths, so the config carries
+  # no `files` block.
   programs.biome = {
     enable = true;
-    formatCommand = "format";
-    settings = import ./biome-config.nix {inherit pkgs;};
-    # treefmt-nix maps unknown biome versions to a 2.1.2 schema, which would
-    # validate this config against a biome that is not the one running it. Pin
-    # the schema to the version in the devenv, which is the whole point.
-    validate.schema = pkgs.fetchurl {
-      url = "https://biomejs.dev/schemas/${pkgs.biome.version}/schema.json";
-      hash = "sha256-YOE0KFzECyivuh3KBmeI1qBcOOx470vQjQBf/Pi9CKw=";
+    settings = {
+      formatter = {
+        enabled = true;
+        indentStyle = "space";
+        indentWidth = 2;
+        lineWidth = 100;
+      };
+
+      linter = {
+        enabled = true;
+        rules = {
+          recommended = true;
+          # The CDK and AWS SDK surfaces this code drives return optionals that
+          # the call site has already narrowed by construction (Roots, Accounts,
+          # an OU's Name), and rewriting those as runtime guards adds branches no
+          # deploy can reach.
+          style.noNonNullAssertion = "off";
+          # dubplate/app/style/main.css opens with Tailwind v3's `@tailwind`
+          # directives, which are not CSS at-rules.
+          suspicious.noUnknownAtRules = {
+            level = "error";
+            options.ignore = ["tailwind"];
+          };
+        };
+      };
+
+      javascript.formatter = {
+        quoteStyle = "single";
+        trailingCommas = "all";
+      };
     };
+    # treefmt-nix maps biome versions it does not know to a 2.1.2 schema. The
+    # schema in biome's own source tree always matches the binary that runs.
+    validate.schema = "${pkgs.biome.src}/packages/@biomejs/biome/configuration_schema.json";
   };
 
   # Rust and TOML, both of which arrived with dubplate/app. The comment that used

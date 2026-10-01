@@ -1,6 +1,6 @@
+import { App } from '@martinjlowm/aws-constructs';
 import { Aspects, Stack } from 'aws-cdk-lib';
 import { AwsSolutionsChecks } from 'cdk-nag';
-import { App } from '@martinjlowm/aws-constructs';
 
 import { S3 } from './stacks/s3';
 

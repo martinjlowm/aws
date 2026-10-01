@@ -6,8 +6,6 @@
   yarn = pkgs.yarn-berry.override {
     nodejs = pkgs.nodejs_24;
   };
-
-  biomeJson = (pkgs.formats.json {}).generate "biome.json" (import ./biome-config.nix {inherit pkgs;});
 in {
   # yarn installs, bun runs. The CDK apps (bootstrap, organization, music,
   # dubplate) are TypeScript executed directly, `bun ./deployment/bin/entry.ts`
@@ -101,24 +99,6 @@ in {
   # hook that passed `--apply` (removed in biome 2) and a prettier hook for
   # `.gql`/`.yaml` files, of which this repo has none.
   git-hooks.hooks.treefmt.enable = true;
-
-  # biome.json is generated, not committed, and this is where it is written.
-  #
-  # It has to exist as a FILE at the repo root: `yarn lint` and every editor's
-  # biome LSP find their config by walking up from the file being edited, and
-  # neither will look in the Nix store. Writing it on shell entry rather than
-  # committing it means there is one source (biome-config.nix) and no second copy
-  # anyone can edit.
-  #
-  # A copy rather than a symlink into the store: biome resolves the globs in
-  # `files.includes` against the config's own directory, and a symlink is one
-  # resolution decision away from making that directory the store path.
-  #
-  # The version is baked into the derivation, so a nixpkgs bump changes the
-  # output path and the next shell entry rewrites the file.
-  enterShell = ''
-    ${pkgs.coreutils}/bin/install -m 0644 ${biomeJson} "${config.devenv.root}/biome.json"
-  '';
 
   # `devenv build outputs.music`: the BPM/key-prefixed wav and flac trees built
   # from the S3 bundles. Reads AWS_ORG, which .envrc populates.

@@ -18,11 +18,6 @@ node_modules/
 !.yarn/versions
 .pnp.*
 
-# Written on shell entry from biome-config.nix (devenv.nix enterShell). It has
-# to be a real file at the root for `yarn lint` and editor LSPs to find it,
-# and it must not be a second copy anyone can edit.
-biome.json
-
 # CDK
 cdk.out/
 
