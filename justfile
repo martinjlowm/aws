@@ -5,17 +5,10 @@ _default:
 check-ts:
     yarn typecheck
 
-# biome.json is generated on devenv shell entry and is gitignored, so a bare
-# shell may not have one. Biome's own failure without a config is a stack
-# overflow from walking node_modules, which names nothing, hence the guard.
+# biome lints through treefmt, so linting is the check-only treefmt run
 [doc("Lint + format check")]
 lint:
-    @test -f biome.json || { \
-      echo 'no biome.json: it is generated from biome-config.nix on devenv shell entry.'; \
-      echo 'run `direnv allow`, or `devenv shell -- just lint`.'; \
-      exit 1; \
-    }
-    yarn lint
+    treefmt --ci
 
 # Format everything treefmt owns (nix, shell, ts, json), see treefmt.nix
 fmt:

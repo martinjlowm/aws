@@ -58,8 +58,5 @@ than to whichever project happened to arrive first.
 shell, `just fmt`, and the pre-commit hook devenv installs.
 
 rustfmt and taplo cover `dubplate/app`; biome is the formatter and the linter for
-TypeScript and JSON. Its configuration
-is `biome-config.nix`, from which `biome.json` is written on every shell entry;
-the JSON is gitignored, so edit the Nix. The `@biomejs/biome` in
-`package.json` is pinned to the version nixpkgs ships, which is what makes an
-editor's biome LSP agree with `just fmt`. Bump one and bump the other.
+TypeScript and JSON. Its configuration lives in `treefmt.nix` and nowhere else:
+there is no `biome.json`, and biome runs only through treefmt.

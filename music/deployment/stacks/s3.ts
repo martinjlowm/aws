@@ -1,6 +1,6 @@
-import { Stack, Duration, type StackProps } from 'aws-cdk-lib';
+import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
 import { Bucket, type IBucket, StorageClass } from 'aws-cdk-lib/aws-s3';
-import { Construct } from 'constructs';
+import type { Construct } from 'constructs';
 
 export class S3 extends Stack {
   bucket: IBucket;
